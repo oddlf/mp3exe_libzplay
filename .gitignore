@@ -1,0 +1,8 @@
+**/*.suo
+**/*.vcxproj.user
+**/.svn
+**/.vs
+/Debug
+/Release
+/libwmp3/**/*Debug*
+/libwmp3/**/*Release*

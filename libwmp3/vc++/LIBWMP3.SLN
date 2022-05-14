@@ -1,19 +1,15 @@
 ﻿
-Microsoft Visual Studio Solution File, Format Version 9.00
-# Visual C++ Express 2005
-Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "build_dll", "build_dll\build_dll.vcproj", "{96248B00-3493-487C-BE11-6478B147CD2D}"
+Microsoft Visual Studio Solution File, Format Version 12.00
+# Visual Studio Version 17
+VisualStudioVersion = 17.1.32414.318
+MinimumVisualStudioVersion = 10.0.40219.1
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "build_dll", "build_dll\build_dll.vcxproj", "{96248B00-3493-487C-BE11-6478B147CD2D}"
 EndProject
-Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "build_static", "build_static\build_static.vcproj", "{852EA943-DEBE-401B-9492-196D08AFA993}"
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "build_static", "build_static\build_static.vcxproj", "{852EA943-DEBE-401B-9492-196D08AFA993}"
 EndProject
-Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "example_dynamic", "example_dynamic\example_dynamic.vcproj", "{17009E9A-2450-4B0B-B1B6-9C34A66FE2B4}"
-	ProjectSection(ProjectDependencies) = postProject
-		{96248B00-3493-487C-BE11-6478B147CD2D} = {96248B00-3493-487C-BE11-6478B147CD2D}
-	EndProjectSection
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "example_dynamic", "example_dynamic\example_dynamic.vcxproj", "{17009E9A-2450-4B0B-B1B6-9C34A66FE2B4}"
 EndProject
-Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "example_static", "example_static\example_static.vcproj", "{D6D5D6B4-4D59-461F-8156-AFA8AC1E90E0}"
-	ProjectSection(ProjectDependencies) = postProject
-		{852EA943-DEBE-401B-9492-196D08AFA993} = {852EA943-DEBE-401B-9492-196D08AFA993}
-	EndProjectSection
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "example_static", "example_static\example_static.vcxproj", "{D6D5D6B4-4D59-461F-8156-AFA8AC1E90E0}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -40,5 +36,8 @@ Global
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
+	EndGlobalSection
+	GlobalSection(ExtensibilityGlobals) = postSolution
+		SolutionGuid = {3AA3B967-3378-4CC6-9D65-ED259B4C2600}
 	EndGlobalSection
 EndGlobal
