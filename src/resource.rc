@@ -1,0 +1,122 @@
+#include "windows.h"
+#include "resource.h"
+
+
+
+/////////////////////////////////////////////////////////////////////////////
+//
+// Icon
+//
+
+// Icon with lowest ID value placed first to ensure application icon
+// remains consistent on all systems.
+LARGE_ICON              ICON    DISCARDABLE     "resource\\large.ico"
+SMALL_ICON              ICON    DISCARDABLE     "resource\\small.ico"
+
+/////////////////////////////////////////////////////////////////////////////
+//
+// Bitmap
+//
+
+BMP_MAIN                BITMAP  MOVEABLE PURE   "resource\\main.bmp"
+BMP_TITLEBAR            BITMAP  MOVEABLE PURE   "resource\\titlebar.bmp"
+BMP_SCROLLBARS          BITMAP  MOVEABLE PURE   "resource\\scroll.bmp"
+BMP_FONT                BITMAP  MOVEABLE PURE   "resource\\font.bmp"
+BMP_VU                  BITMAP  MOVEABLE PURE   "resource\\vu.bmp"
+BMP_VUBG                BITMAP  MOVEABLE PURE   "resource\\vubg.bmp"
+BMP_BTPREV              BITMAP  MOVEABLE PURE   "resource\\btprev.bmp"
+BMP_BTPLAY              BITMAP  MOVEABLE PURE   "resource\\btplay.bmp"
+BMP_BTPAUSE             BITMAP  MOVEABLE PURE   "resource\\btpause.bmp"
+BMP_BTNEXT              BITMAP  MOVEABLE PURE   "resource\\btnext.bmp"
+BMP_BTOPEN              BITMAP  MOVEABLE PURE   "resource\\btopen.bmp"
+BMP_BTMPEXE             BITMAP  MOVEABLE PURE   "resource\\btmpexe.bmp"
+BMP_BTMENU              BITMAP  MOVEABLE PURE   "resource\\btmenu.bmp"
+BMP_BTSTOP              BITMAP  MOVEABLE PURE   "resource\\btstop.bmp"
+BMP_BTMINIMIZE          BITMAP  MOVEABLE PURE   "resource\\btminimize.bmp"
+BMP_BTCLOSE             BITMAP  MOVEABLE PURE   "resource\\btclose.bmp"
+BMP_SBBG                BITMAP  MOVEABLE PURE   "resource\\sbbg.bmp"
+BMP_SBTHUMB             BITMAP  MOVEABLE PURE   "resource\\sbthumb.bmp"
+BMP_SBVERT              BITMAP  MOVEABLE PURE   "resource\\sbvert.bmp"
+BMP_SBVTHUMB            BITMAP  MOVEABLE PURE   "resource\\sbvthumb.bmp"
+BMP_TBBG                BITMAP  MOVEABLE PURE   "resource\\tbbg.bmp"
+BMP_BTCLOSE1            BITMAP  MOVEABLE PURE   "resource\\btclose1.bmp"
+BMP_BTMINIMIZE1         BITMAP  MOVEABLE PURE   "resource\\btminimize1.bmp"
+BMP_BTSFX               BITMAP  MOVEABLE PURE   "resource\\btsfx.bmp"
+BMP_BTEQ                BITMAP  MOVEABLE PURE   "resource\\bteq.bmp"
+BMP_BTRESETEQ           BITMAP  MOVEABLE PURE   "resource\\btreseteq.bmp"
+BMP_BTECHO              BITMAP  MOVEABLE PURE   "resource\\btecho.bmp"
+BMP_TBMODE              BITMAP  MOVEABLE PURE   "resource\\tbmode.bmp"
+BMP_BTMODENEXT          BITMAP  MOVEABLE PURE   "resource\\btmodenext.bmp"
+BMP_BTMODEPREV          BITMAP  MOVEABLE PURE   "resource\\btmodeprev.bmp"
+BMP_BTREVERSE           BITMAP  MOVEABLE PURE   "resource\\btplayrev.bmp"
+BMP_BTLINEAR            BITMAP  MOVEABLE PURE   "resource\\btlinear.bmp"
+BMP_FFTBG				BITMAP  MOVEABLE PURE   "resource\\fftbg.bmp"
+BMP_SPECTRUM			BITMAP  MOVEABLE PURE   "resource\\spectrum.bmp"
+
+/////////////////////////////////////////////////////////////////////////////
+//
+// Menu
+//
+
+MAIN_MENU MENU DISCARDABLE 
+BEGIN
+    POPUP "MainMenu"
+    BEGIN
+    	MENUITEM "About",          				M_ABOUT
+        MENUITEM SEPARATOR
+        MENUITEM "Play embedded file",          M_EMBEDDED
+        MENUITEM SEPARATOR
+        MENUITEM "Open mp3 file ...",           M_OPEN
+        MENUITEM SEPARATOR
+        MENUITEM "Convert mp3 to exe ...",      M_CONVERT
+        MENUITEM SEPARATOR
+        MENUITEM "Extract mp3 ...",             M_EXTRACT
+        MENUITEM SEPARATOR
+        MENUITEM "Always On Top",               M_ONTOP
+        MENUITEM "Minimize To Tray",            M_MINTOTRAY
+        MENUITEM "Display Tooltips",            M_TOOLTIPS
+        MENUITEM "Key Shortcuts",               M_SHORTCUTS
+        MENUITEM "ESC Minimize",                M_ESCMIN
+        MENUITEM "Time Elapsed",                M_TIMEELAPSED
+        MENUITEM SEPARATOR
+        MENUITEM "Exit",                        M_EXIT
+    END
+END
+
+
+/////////////////////////////////////////////////////////////////////////////
+//
+// Version
+//
+
+1 VERSIONINFO
+ FILEVERSION 2,4,0,0
+ PRODUCTVERSION 2,4,0,0
+ FILEFLAGSMASK 0x0L
+#ifdef _DEBUG
+ FILEFLAGS 0x1L
+#else
+ FILEFLAGS 0x0L
+#endif
+ FILEOS 0x4L
+ FILETYPE 0x1L
+ FILESUBTYPE 0x0L
+BEGIN
+    BLOCK "StringFileInfo"
+    BEGIN
+        BLOCK "040904E4"
+        BEGIN
+            VALUE "Comments", "Mp3-Exe Player.\0"
+            VALUE "CompanyName", "Email: zcindori@inet.hr\0"
+            VALUE "FileVersion", "2.4\0"
+            VALUE "FileDescription", "Mp3 Exe Player\0"
+            VALUE "InternalName", "mp3exe\0"
+            VALUE "LegalCopyright", "GNU General Public License\0"
+            VALUE "LegalTrademarks", "GNU\0"
+            VALUE "OriginalFilename", "mp3exe.exe\0"
+            VALUE "ProductName", "Mp3-Exe Player\0"
+            VALUE "ProductVersion", "2.4\0"
+        END
+    END
+END
+
