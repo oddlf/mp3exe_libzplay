@@ -1,0 +1,60 @@
+<html>
+<body>
+<pre>
+<h1>Build Log</h1>
+<h3>
+--------------------Configuration: build_dll - Win32 Release--------------------
+</h3>
+<h3>Command Lines</h3>
+Creating temporary file "D:\DOCUME~1\Angel\LOCALS~1\Temp\RSP5C.tmp" with contents
+[
+/nologo /MT /W3 /GX /O2 /D "WIN32" /D "NDEBUG" /D "_WINDOWS" /D "_MBCS" /D "_USRDLL" /D "W_STATIC_LIB" /Fp"Release/build_dll.pch" /YX /Fo"Release/" /Fd"Release/" /FD /c 
+"D:\991tren\libwmp3-2.4-source\src\libwmp3.cpp"
+"D:\991tren\libwmp3-2.4-source\src\wmp3.cpp"
+]
+Creating command line "cl.exe @D:\DOCUME~1\Angel\LOCALS~1\Temp\RSP5C.tmp" 
+Creating temporary file "D:\DOCUME~1\Angel\LOCALS~1\Temp\RSP5D.tmp" with contents
+[
+kernel32.lib user32.lib gdi32.lib winspool.lib comdlg32.lib advapi32.lib shell32.lib ole32.lib oleaut32.lib uuid.lib odbc32.lib odbccp32.lib /nologo /dll /incremental:no /pdb:"Release/libwmp3.pdb" /machine:I386 /def:"..\..\src\libwmp3.def" /out:"../../bin/lib_dynamic/Release/libwmp3.dll" /implib:"Release/libwmp3.lib" 
+".\Release\libwmp3.obj"
+".\Release\wequ.obj"
+".\Release\wmp3.obj"
+".\Release\wmp3decoder.obj"
+".\Release\wqueue.obj"
+".\Release\wwave.obj"
+".\Release\resource.res"
+]
+Creating command line "link.exe @D:\DOCUME~1\Angel\LOCALS~1\Temp\RSP5D.tmp"
+<h3>Output Window</h3>
+Compiling...
+libwmp3.cpp
+wmp3.cpp
+D:\991tren\libwmp3-2.4-source\src\wmp3.cpp(3756) : warning C4018: '>' : signed/unsigned mismatch
+D:\991tren\libwmp3-2.4-source\src\wmp3.cpp(3819) : warning C4018: '>' : signed/unsigned mismatch
+D:\991tren\libwmp3-2.4-source\src\wmp3.cpp(8647) : warning C4018: '<' : signed/unsigned mismatch
+D:\991tren\libwmp3-2.4-source\src\wmp3.cpp(9089) : warning C4018: '<' : signed/unsigned mismatch
+D:\991tren\libwmp3-2.4-source\src\wmp3.cpp(9101) : warning C4018: '<' : signed/unsigned mismatch
+D:\991tren\libwmp3-2.4-source\src\wmp3.cpp(9124) : warning C4018: '<' : signed/unsigned mismatch
+D:\991tren\libwmp3-2.4-source\src\wmp3.cpp(9146) : warning C4018: '<' : signed/unsigned mismatch
+D:\991tren\libwmp3-2.4-source\src\wmp3.cpp(9260) : warning C4244: '=' : conversion from 'double' to 'float', possible loss of data
+D:\991tren\libwmp3-2.4-source\src\wmp3.cpp(9261) : warning C4244: '=' : conversion from 'double' to 'float', possible loss of data
+D:\991tren\libwmp3-2.4-source\src\wmp3.cpp(9268) : warning C4244: '=' : conversion from 'double' to 'float', possible loss of data
+D:\991tren\libwmp3-2.4-source\src\wmp3.cpp(9269) : warning C4244: '=' : conversion from 'double' to 'float', possible loss of data
+D:\991tren\libwmp3-2.4-source\src\wmp3.cpp(9278) : warning C4244: '=' : conversion from 'double' to 'float', possible loss of data
+D:\991tren\libwmp3-2.4-source\src\wmp3.cpp(9301) : warning C4244: '=' : conversion from 'double' to 'int', possible loss of data
+D:\991tren\libwmp3-2.4-source\src\wmp3.cpp(9325) : warning C4244: '=' : conversion from 'double' to 'float', possible loss of data
+D:\991tren\libwmp3-2.4-source\src\wmp3.cpp(9326) : warning C4244: '=' : conversion from 'double' to 'float', possible loss of data
+D:\991tren\libwmp3-2.4-source\src\wmp3.cpp(9333) : warning C4244: '=' : conversion from 'double' to 'float', possible loss of data
+D:\991tren\libwmp3-2.4-source\src\wmp3.cpp(9334) : warning C4244: '=' : conversion from 'double' to 'float', possible loss of data
+D:\991tren\libwmp3-2.4-source\src\wmp3.cpp(9343) : warning C4244: '=' : conversion from 'double' to 'float', possible loss of data
+D:\991tren\libwmp3-2.4-source\src\wmp3.cpp(9369) : warning C4244: '=' : conversion from 'double' to 'int', possible loss of data
+Linking...
+   Creating library Release/libwmp3.lib and object Release/libwmp3.exp
+
+
+
+<h3>Results</h3>
+libwmp3.dll - 0 error(s), 19 warning(s)
+</pre>
+</body>
+</html>
