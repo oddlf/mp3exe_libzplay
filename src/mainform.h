@@ -7,9 +7,6 @@
 
 
 
-#define FFT_SIZE 512
-#define FFT_HARMONICS_NUMBER FFT_SIZE/2 + 1
-
 
 #define INTER_APP_MESSAGE WM_USER + 1
 
@@ -57,19 +54,6 @@ public:
     LRESULT OnTrayIconNotify(DWORD Message, UINT iconID);
     LRESULT OnContextMenu(int X, int Y, HWND Handle);
 
-	WBmpTextBox *tbF1;
-	WBmpTextBox *tbF2;
-	WBmpTextBox *tbF3;
-	WBmpTextBox *tbF4;
-	WBmpTextBox *tbF5;
-	WBmpTextBox *tbF6;
-	WBmpTextBox *tbF7;
-	WBmpTextBox *tbF8;
-
-	int c_LeftAmplitude[FFT_HARMONICS_NUMBER];
-	int c_RightAmplitude[FFT_HARMONICS_NUMBER];
-	int c_HarmonicFreq[FFT_HARMONICS_NUMBER];
-
 private:
 	
 
@@ -77,8 +61,6 @@ private:
 
 HBITMAP hbMain;
 HBITMAP hbTitlebar;
-HBITMAP hbFFT;
-HBITMAP hbFFTBg;
 
 
 WBmpButton *btSpectrumNext;
@@ -94,22 +76,8 @@ WBmpButton *btFFTWindowNext;
 WBmpButton *btFFTWindowPrev;
 WBmpTextBox *tbFFTWindow;
 
-HBRUSH hBrushFFTBackground;
-HBRUSH hBrushFFTLeft;
-HBRUSH hBrushFFTLeftOverlap;
-HBRUSH hBrushFFTRight;
-HBRUSH hBrushFFTRightOverlap;
-
-HPEN hPenBgLine;
-HPEN hPenBgLineStrong;
-HPEN hPenLeft; 
-HPEN hPenRight;
-
-HPEN hPenLeftOverlap; 
-HPEN hPenRightOverlap;
-
-RECT FFTDisplayRect;
 int c_nSpectrumType;
+int c_nSpectrumWindow;
 
 
 };

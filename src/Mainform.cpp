@@ -12,7 +12,7 @@
 #include <dbt.h>
 
 
-#include "..\libwmp3\src\libwmp3.h"
+#include "..\libzplay.h"
 
 
 
@@ -32,41 +32,8 @@
 
 #define REGISTRY_KEY "Software\\ZokSoft\\Mp3Exe"
 
+using namespace libZPlay;
 
-
-void alpha_blend();
-
-
-BITMAPINFOHEADER bmhInfo;
-HDC g_hdcSrc;
-HDC g_hdcDest;
-HBITMAP g_hbmSrc;
-HBITMAP g_hbmDest;
-HBITMAP g_hbmSrcOld;
-HBITMAP g_hbmDestOld;
-BYTE *g_pSrcBits;
-BYTE *g_pDestBits;
-
-typedef struct {
-	BYTE rgbRed;
-	BYTE rgbGreen;
-	BYTE rgbBlue;
-
-} RGB_TABLE;
-
-RGB_TABLE g_rgb_table[120];
-
-
-int g_clearFFTDisplay = 1;
-int g_fft_pos = 0;
-
-// mask
-#define MASK_RED 0
-#define MASK_GREEN 0
-#define MASK_BLUE 0
-// blend
-int g_alpha = 200;
-int g_invalpha = 55;
 
 #define BT_REVERSE 99
 #define BT_PREV 100
@@ -124,7 +91,7 @@ int g_invalpha = 55;
 
 
 
-int eq_points[11] = {0, 600, 1300, 1800, 2500, 4000, 6000, 8500, 11000, 14000, EQ_MAX_FREQ};
+//int eq_points[11] = {0, 600, 1300, 1800, 2500, 4000, 6000, 8500, 11000, 14000, EQ_MAX_FREQ};
 
 char *sModes [] = {
 	"echo 1",
@@ -190,25 +157,6 @@ WScrollbar* sbEq10;
 WScrollbar* sbPreAmp;
 
 
-
-FFT_STRUCT g_FFT_struct;
-
-
-#define VU_EQ_NUM 256
-
-
-POINT FFT_Left[VU_EQ_NUM + 3];
-POINT FFT_Right[VU_EQ_NUM + 3];
-POINT FFT_Tmp[VU_EQ_NUM + 3];
-
-POINT FFT_Tmp1[VU_EQ_NUM * 2 + 6];
-POINT FFT_Tmp2[VU_EQ_NUM * 2 + 6];
-POINT FFT_Tmp3[VU_EQ_NUM * 2 + 6];
-
-
-
-
-
 WBmpFont* bmpfont;
 
 
@@ -245,7 +193,6 @@ BOOL bAlwaysOnTop = FALSE;
 BOOL sfx = FALSE;
 BOOL eq = FALSE;
 
-BOOL ExternalEQ = TRUE;
 
 char mp3filename[MAX_PATH];
 
@@ -255,7 +202,7 @@ int reverse = 0;
 BOOL Start(char* filename);
 
 
-extern CWMp3 *mp3;
+extern ZPlay *player;
 
 
 extern WTooltip *tooltip;
@@ -293,204 +240,26 @@ BOOL Playing = FALSE;
 
 POINT moveMain;	// need for moving main window
 
+#define SPECTRUM_MODES_NUM 7
 
-int g_FFTDisplayMono = 0;
-
-#define SPECTRUM_MODES_NUM 6
-
-#define SPECTRUM_LINES 0
-#define SPECTRUM_AREA_LEFT 1
-#define SPECTRUM_AREA_RIGHT 2
-#define SPECTRUM_BARS_LEFT 3
-#define SPECTRUM_BARS_RIGHT 4
-#define SPECTRUM_SPECTRAL_VIEW 5
-
-
-char *g_szSpectrumModes[SPECTRUM_MODES_NUM] = { "Lines", "Area (Left on top)", "Area (Right on top)", "Bars (Left on top)" , "Bars (Right on top)", "Spectral view"};
+char *g_szSpectrumModes[SPECTRUM_MODES_NUM] = { "Lines (Left on top)", "Lines (Right on top)", "Area (Left on top)",
+												"Area (Right on top)", "Bars (Left on top)" , "Bars (Right on top)", "Spectral view"};
 
 #define FFT_WINDOW_NUM 14
 char *g_szFFTWindow[FFT_WINDOW_NUM] = { "Rectangular", "Hamming", "Hann", "Cosine", "Lanczos", "Bartlett", "Triangular",
-										"Gauss", "Bartlett-Hann", "Blackman", "Nuttall", "Blackman-Harris", "Blackman-Nuttall",
-											"Flat top"};
+										"Gauss", "Bartlett-Hann", "Blackman", "Nuttall", "Blackman-Harris", "Blackman-Nuttall", "Flat top"};
 
-#define FFT_DISPLAY_WIDTH VU_EQ_NUM
-#define FFT_DISPLAY_HEIGHT 120
+#define FFT_DISPLAY_WIDTH 275
+#define FFT_DISPLAY_HEIGHT 141
 
-#define FFT_X 9
-#define FFT_Y 252
-
-#define MODE_LINEAR 0
-#define MODE_LOG 1
-
-void prepare_fft_x(int mode, int nFreqNum, int *pnFreq, int nPointsX, POINT *ppLeft, POINT *ppRight);
-
-
-void prepare_fft_x(int nMode, int nFreqNum, int *pnFreq, int nPointsX, POINT *ppLeft, POINT *ppRight)
-{
-	int i;
-
-	switch(nMode)
-	{
-		case MODE_LINEAR:
-		{
-			for(i = 0; i < VU_EQ_NUM  ; i++)
-			{
-				FFT_Left[i].x =  i; 
-				FFT_Right[i].x = i;
-				FFT_Tmp[i].x = i;
-				FFT_Left[i].y = FFT_DISPLAY_HEIGHT;
-				FFT_Right[i].y = FFT_DISPLAY_HEIGHT;
-
-			}
-			
-			char tmp[10];
-			sprintf(tmp, "%i", pnFreq[1]);
-			mainForm->tbF1->SetText(tmp, TRUE);	
-
-			sprintf(tmp, "%i", pnFreq[nFreqNum * 1 / 8]);
-			mainForm->tbF2->SetText(tmp, TRUE);
-
-			sprintf(tmp, "%i", pnFreq[nFreqNum  * 2 / 8]);
-			mainForm->tbF3->SetText(tmp, TRUE);
-
-			sprintf(tmp, "%i", pnFreq[nFreqNum * 3 / 8]);
-			mainForm->tbF4->SetText(tmp, TRUE);
-
-			sprintf(tmp, "%i", pnFreq[nFreqNum * 4 / 8]);
-			mainForm->tbF5->SetText(tmp, TRUE);
-
-			sprintf(tmp, "%i", pnFreq[nFreqNum * 5 / 8]);
-			mainForm->tbF6->SetText(tmp, TRUE);
-
-			sprintf(tmp, "%i", pnFreq[nFreqNum * 6 / 8]);
-			mainForm->tbF7->SetText(tmp, TRUE);
-
-			sprintf(tmp, "%i", pnFreq[nFreqNum * 7 / 8]);
-			mainForm->tbF8->SetText(tmp, TRUE);
-		}
-		break;
-
-		case MODE_LOG:
-		{
-			double scale = log10((double) (VU_EQ_NUM + 1)) /  (double) VU_EQ_NUM ; 
-			double logx;
-
-			for(i = 0; i < VU_EQ_NUM  ; i++)
-			{
-				logx = log10((double) (i + 1)); 
-				FFT_Left[i].x = logx / scale; 
-
-				FFT_Right[i].x = FFT_Left[i].x;
-				FFT_Tmp[i].x = FFT_Left[i].x;
-				FFT_Left[i].y = FFT_DISPLAY_HEIGHT;
-				FFT_Right[i].y = FFT_DISPLAY_HEIGHT;
-
-			}
-
-			scale = log10((double) (VU_EQ_NUM + 1)) /  (double) VU_EQ_NUM ; 
-
-			char tmp[10];
-			sprintf(tmp, "%i", pnFreq[1]);
-			mainForm->tbF1->SetText(tmp, TRUE);	
-
-			logx = log10((double) nFreqNum * 1.0 / 6.0 ); 
-
-
-			int pos = nFreqNum  * 1 / 8;
-			for(i = 0; i < nFreqNum; i++)
-			{
-				if(FFT_Left[i].x > pos)
-					break;
-
-			}
-
-			sprintf(tmp, "%i", pnFreq[ i ]);
-			mainForm->tbF2->SetText(tmp, TRUE);
-
-			pos = nFreqNum  * 2 / 8;
-			for(i = 0; i < nFreqNum; i++)
-			{
-				if(FFT_Left[i].x > pos)
-					break;
-
-			}
-
-			sprintf(tmp, "%i", pnFreq[i]);
-			mainForm->tbF3->SetText(tmp, TRUE);
-
-			pos = nFreqNum  * 3 / 8;
-			for(i = 0; i < nFreqNum; i++)
-			{
-				if(FFT_Left[i].x > pos)
-					break;
-
-			} 
-			sprintf(tmp, "%i", pnFreq[i]);
-			mainForm->tbF4->SetText(tmp, TRUE);
-
-			pos = nFreqNum  * 4 / 8;
-			for(i = 0; i < nFreqNum; i++)
-			{
-				if(FFT_Left[i].x > pos)
-					break;
-
-			} 
-
-			sprintf(tmp, "%i", pnFreq[i]);
-			mainForm->tbF5->SetText(tmp, TRUE);
-
-			pos = nFreqNum  * 5 / 8;
-			for(i = 0; i < nFreqNum; i++)
-			{
-				if(FFT_Left[i].x > pos)
-					break;
-
-			} 
-
-			sprintf(tmp, "%i", pnFreq[i]);
-			mainForm->tbF6->SetText(tmp, TRUE);
-
-
-			pos = nFreqNum  * 6 / 8;
-			for(i = 0; i < nFreqNum; i++)
-			{
-				if(FFT_Left[i].x > pos)
-					break;
-
-			} 
-
-			sprintf(tmp, "%i", pnFreq[i]);
-			mainForm->tbF7->SetText(tmp, TRUE);
-
-
-			pos = nFreqNum  * 7 / 8;
-			for(i = 0; i < nFreqNum; i++)
-			{
-				if(FFT_Left[i].x > pos)
-					break;
-
-			} 
-
-			sprintf(tmp, "%i", pnFreq[i]);
-			mainForm->tbF8->SetText(tmp, TRUE);
-
-
-		
-
-		}
-		break;
-
-	}
-
-}
-
+#define FFT_X 0
+#define FFT_Y 247
 
 
 HBITMAP vubg;
 HBITMAP vufg;
 
-
-int g_FFTDisplayMode = MODE_LOG;
+int g_FFTDisplayMode = gsLogarithmic;
 
 LRESULT MainForm::OnCreate()
 {
@@ -500,21 +269,10 @@ LRESULT MainForm::OnCreate()
 
 
 	// initialize eq
+	memset(eq_values, 0, 10 * sizeof(int));
 
-
-	memset(eq_values,0, 10 * sizeof(int));
-
-
-
-	memset(&g_FFT_struct, 0, sizeof(FFT_STRUCT));
-
-	g_FFT_struct.nFFTPoints = FFT_SIZE;
-	g_FFT_struct.nFFTWindow = FFT_BLACKMAN_HARRIS;
-
-	g_FFT_struct.pnLeftAmplitude = c_LeftAmplitude;
-    g_FFT_struct.pnRightAmplitude = c_RightAmplitude;
-
-	c_nSpectrumType = SPECTRUM_AREA_LEFT;
+	c_nSpectrumType = gtBarsLeftOnTop;
+	c_nSpectrumWindow = fwBlackmanHarris;
 
 // load settings from registry
 
@@ -538,7 +296,7 @@ LRESULT MainForm::OnCreate()
 	{
 						
 		if(RegQueryValueEx(registry, "fftWindow", 0, 0, (unsigned char*) &value, &size) == ERROR_SUCCESS)
-			g_FFT_struct.nFFTWindow = value;
+			c_nSpectrumWindow = value;
 
 
 		if(RegQueryValueEx(registry, "fftSpectrumType", 0, 0, (unsigned char*) &value, &size) == ERROR_SUCCESS)
@@ -583,93 +341,9 @@ LRESULT MainForm::OnCreate()
 		RegCloseKey(registry);
 	}
 
-
-
-
-	HDC hdc = GetDC(Handle);
-	g_hdcSrc = CreateCompatibleDC(hdc);
-	g_hdcDest = CreateCompatibleDC(hdc);
-
-	// prepare data for alpha blending
-	bmhInfo.biSize = sizeof(BITMAPINFOHEADER);
-	bmhInfo.biWidth = FFT_DISPLAY_WIDTH;
-	bmhInfo.biHeight = FFT_DISPLAY_HEIGHT;
-	bmhInfo.biPlanes = 1;
-	bmhInfo.biBitCount = 32;
-	bmhInfo.biCompression = BI_RGB;   // No compression
-	bmhInfo.biSizeImage = 0;
-	bmhInfo.biXPelsPerMeter = 0;
-	bmhInfo.biYPelsPerMeter = 0;
-	bmhInfo.biClrUsed = 0;           // Always use the whole palette.
-	bmhInfo.biClrImportant = 0;
-
-	g_hbmSrc = CreateDIBSection (hdc, (BITMAPINFO *)&bmhInfo,
-		DIB_RGB_COLORS, (void **)&g_pSrcBits, 0, 0);
-
-	g_hbmDest = CreateDIBSection (hdc, (BITMAPINFO *)&bmhInfo,
-		DIB_RGB_COLORS, (void **)&g_pDestBits, 0, 0);
-
-	g_hbmSrcOld = (HBITMAP) SelectObject(g_hdcSrc, g_hbmSrc);
-
-
-	HBITMAP hbmp = LoadBitmap(myApp->Instance, MAKEINTRESOURCE(BMP_SPECTRUM));
-	HBITMAP hbold = (HBITMAP) SelectObject(g_hdcDest, hbmp);
-
-	COLORREF cr;
-	int i;
-	for(i = 0; i < 120; i++)
-	{
-		cr = GetPixel(g_hdcDest, i, 0);
-		g_rgb_table[i].rgbRed = GetRValue(cr);
-		g_rgb_table[i].rgbGreen = GetGValue(cr);
-		g_rgb_table[i].rgbBlue = GetBValue(cr);
-
-	}
-
-	SelectObject(g_hdcDest, hbold);
-	DeleteObject(hbmp);
-
-
-
-	g_hbmDestOld = (HBITMAP) SelectObject(g_hdcDest, g_hbmDest);
-	ReleaseDC(Handle, hdc);
-
-
-
-	FFTDisplayRect.left = 0;
-	FFTDisplayRect.top = 0;
-	FFTDisplayRect.right = FFT_DISPLAY_WIDTH;
-	FFTDisplayRect.bottom = FFT_DISPLAY_HEIGHT;
-	
-
-
-
-	hPenLeft = CreatePen(PS_SOLID, 1, RGB(48,192,255)); 
-	hPenLeftOverlap = CreatePen(PS_SOLID, 1, RGB(116,64,125)); 
-
-	hPenRight = CreatePen(PS_SOLID, 1, RGB(255,48,168));
-	hPenRightOverlap = CreatePen(PS_SOLID, 1, RGB(85,64,166));
-
-
-	hBrushFFTBackground = CreateSolidBrush(RGB(30,30,30)); 
-	hPenBgLine = CreatePen(PS_SOLID, 1, RGB(48,48,48));
-	hPenBgLineStrong = CreatePen(PS_SOLID, 1, RGB(96,96,96));
-
-	hBrushFFTLeft = CreateSolidBrush( RGB(0,48,110)); 
-	hBrushFFTLeftOverlap = CreateSolidBrush( RGB(33,48,123));
-
-	hBrushFFTRight = CreateSolidBrush( RGB(100,0,40)); 
-	hBrushFFTRightOverlap = CreateSolidBrush( RGB(100,16,76)); 
-
-	
-
-
-
-
-
 	// create new eq bands
 
-	mp3->CreateEqBands(eq_points, 11);
+	//player->SetEqualizerPoints(eq_points, 11);
 
 
     // create tooltip control
@@ -678,7 +352,6 @@ LRESULT MainForm::OnCreate()
 
 	hbMain = LoadBitmap(myApp->Instance, MAKEINTRESOURCE(BMP_MAIN));
 	hbTitlebar = LoadBitmap(myApp->Instance, MAKEINTRESOURCE(BMP_TITLEBAR));
-	hbFFTBg = LoadBitmap(myApp->Instance, MAKEINTRESOURCE(BMP_FFTBG));
 	
     HBITMAP hbm;
 
@@ -837,7 +510,7 @@ LRESULT MainForm::OnCreate()
 	DeleteObject(hbm);
 	btLinear->AddTooltip(tooltip,"Linear FFT spectrum");
 	DeleteObject(hbm);
-	btLinear->SetCheck(!g_FFTDisplayMode);
+	btLinear->SetCheck(g_FFTDisplayMode);
 
 
 
@@ -858,54 +531,9 @@ LRESULT MainForm::OnCreate()
 
 	hbm = LoadBitmap(myApp->Instance, MAKEINTRESOURCE(BMP_TBBG));
 	tbFFTWindow = new WBmpTextBox();
-	tbFFTWindow->Create(g_szFFTWindow[g_FFT_struct.nFFTWindow - 1], 60, 236,70,11,Handle,TB_FFT_WINDOW, myApp->Instance, hbm, bmpfont);
+	tbFFTWindow->Create(g_szFFTWindow[c_nSpectrumWindow], 60, 236,70,11,Handle,TB_FFT_WINDOW, myApp->Instance, hbm, bmpfont);
 	DeleteObject(hbm);
 	tbFFTWindow->AddTooltip(tooltip,"Change FFT window");
-
-
-
-
-	hbm = LoadBitmap(myApp->Instance, MAKEINTRESOURCE(BMP_TBBG));
-	tbF1 = new WBmpTextBox();
-	tbF1->Create("22000", FFT_X- 3, 374,28,11,Handle,0, myApp->Instance, 0, bmpfont);
-	DeleteObject(hbm);
-
-	hbm = LoadBitmap(myApp->Instance, MAKEINTRESOURCE(BMP_TBBG));
-	tbF2 = new WBmpTextBox();
-	tbF2->Create("22000", FFT_X + 24, 374,28,11,Handle,0, myApp->Instance, 0, bmpfont);
-	DeleteObject(hbm);
-
-	hbm = LoadBitmap(myApp->Instance, MAKEINTRESOURCE(BMP_TBBG));
-	tbF3 = new WBmpTextBox();
-	tbF3->Create("22000", FFT_X + 55, 374,28,11,Handle,0, myApp->Instance, 0, bmpfont);
-	DeleteObject(hbm);
-
-	hbm = LoadBitmap(myApp->Instance, MAKEINTRESOURCE(BMP_TBBG));
-	tbF4 = new WBmpTextBox();
-	tbF4->Create("22000", FFT_X + 86, 374,28,11,Handle,0, myApp->Instance, 0, bmpfont);
-	DeleteObject(hbm);
-
-	hbm = LoadBitmap(myApp->Instance, MAKEINTRESOURCE(BMP_TBBG));
-	tbF5 = new WBmpTextBox();
-	tbF5->Create("22000", FFT_X + 117, 374,28,11,Handle,0, myApp->Instance, 0, bmpfont);
-	DeleteObject(hbm);
-
-	hbm = LoadBitmap(myApp->Instance, MAKEINTRESOURCE(BMP_TBBG));
-	tbF6 = new WBmpTextBox();
-	tbF6->Create("22000", FFT_X + 148, 374,28,11,Handle,0, myApp->Instance, 0, bmpfont);
-	DeleteObject(hbm);
-
-	hbm = LoadBitmap(myApp->Instance, MAKEINTRESOURCE(BMP_TBBG));
-	tbF7 = new WBmpTextBox();
-	tbF7->Create("22000", FFT_X + 181, 374,28,11,Handle,0, myApp->Instance, 0, bmpfont);
-	DeleteObject(hbm);
-
-	hbm = LoadBitmap(myApp->Instance, MAKEINTRESOURCE(BMP_TBBG));
-	tbF8 = new WBmpTextBox();
-	tbF8->Create("22000", FFT_X + 213, 374,28,11,Handle,0, myApp->Instance, 0, bmpfont);
-	DeleteObject(hbm);
-
-
 
 
 	hbm = LoadBitmap(myApp->Instance, MAKEINTRESOURCE(BMP_SBBG));
@@ -932,89 +560,89 @@ LRESULT MainForm::OnCreate()
 	sbDelay->Create(VERT,252,150,4,60,Handle,SB_DELAY,myApp->Instance,hbm,hbm1);
 	sbDelay->AddTooltip(tooltip,"EFX delay");
 	sbDelay->SetRange(20,0);
-	sbDelay->SetPos(sfx_delay,1);
+	//sbDelay->SetPos(sfx_delay,1);
 
 
 	sbEcho = new WScrollbar();
 	sbEcho->Create(VERT,225,150,4,60,Handle,SB_ECHO,myApp->Instance,hbm,hbm1);
 	sbEcho->AddTooltip(tooltip,"EFX volume");
 	sbEcho->SetRange(24,0);
-	sbEcho->SetPos(sfx_echo,1);
+	//sbEcho->SetPos(sfx_echo,1);
 
 	sbInput = new WScrollbar();
 	sbInput->Create(VERT,211,150,4,60,Handle,SB_INPUT,myApp->Instance,hbm,hbm1);
 	sbInput->AddTooltip(tooltip,"EFX input volume");
 	sbInput->SetRange(24,0);
-	sbInput->SetPos(sfx_input,1);
+	//sbInput->SetPos(sfx_input,1);
 
 	sbOutput = new WScrollbar();
 	sbOutput->Create(VERT,239,150,4,60,Handle,SB_OUTPUT,myApp->Instance,hbm,hbm1);
 	sbOutput->AddTooltip(tooltip,"EFX output volume");
 	sbOutput->SetRange(24,0);
-	sbOutput->SetPos(sfx_output,1);
+	//sbOutput->SetPos(sfx_output,1);
 
 	sbPreAmp = new WScrollbar();
 	sbPreAmp->Create(VERT,20,150,4,60,Handle,SB_PREAMP,myApp->Instance,hbm,hbm1);
-	sbPreAmp->SetRange(24,0);
-	sbPreAmp->SetPos(eq_preamp,1);
+	sbPreAmp->SetRange(24000,0);
+	sbPreAmp->SetPos(12000,1);
 
 	sbEq1 = new WScrollbar();
 	sbEq1->Create(VERT,40,150,4,60,Handle,SB_EQ1,myApp->Instance,hbm,hbm1);
-	sbEq1->SetRange(24,0);
-	sbEq1->SetPos( 12 - eq_values[0],1);
+	sbEq1->SetRange(24000,0);
+	sbEq1->SetPos(12000 - eq_values[0],1);
 
 	sbEq2 = new WScrollbar();
 	sbEq2->Create(VERT,54,150,4,60,Handle,SB_EQ2,myApp->Instance,hbm,hbm1);
-	sbEq2->SetRange(24,0);
-	sbEq2->SetPos(12 - eq_values[1] ,1);
+	sbEq2->SetRange(24000,0);
+	sbEq2->SetPos(12000 - eq_values[1] ,1);
 
 
 	sbEq3 = new WScrollbar();
 	sbEq3->Create(VERT,68,150,4,60,Handle,SB_EQ3,myApp->Instance,hbm,hbm1);
-	sbEq3->SetRange(24,0);
-	sbEq3->SetPos(12 - eq_values[2] ,1);
+	sbEq3->SetRange(24000,0);
+	sbEq3->SetPos(12000 - eq_values[2] ,1);
 
 
 	sbEq4 = new WScrollbar();
 	sbEq4->Create(VERT,82,150,4,60,Handle,SB_EQ4,myApp->Instance,hbm,hbm1);
-	sbEq4->SetRange(24,0);
-	sbEq4->SetPos(12 - eq_values[3] ,1);
+	sbEq4->SetRange(24000,0);
+	sbEq4->SetPos(12000 - eq_values[3] ,1);
 
 
 	sbEq5 = new WScrollbar();
 	sbEq5->Create(VERT,96,150,4,60,Handle,SB_EQ5,myApp->Instance,hbm,hbm1);
-	sbEq5->SetRange(24,0);
-	sbEq5->SetPos(12 - eq_values[4] ,1);
+	sbEq5->SetRange(24000,0);
+	sbEq5->SetPos(12000 - eq_values[4] ,1);
 
 
 	sbEq6 = new WScrollbar();
 	sbEq6->Create(VERT,110,150,4,60,Handle,SB_EQ6,myApp->Instance,hbm,hbm1);
-	sbEq6->SetRange(24,0);
-	sbEq6->SetPos(12 - eq_values[5] ,1);
+	sbEq6->SetRange(24000,0);
+	sbEq6->SetPos(12000 - eq_values[5] ,1);
 
 
 	sbEq7 = new WScrollbar();
 	sbEq7->Create(VERT,124,150,4,60,Handle,SB_EQ7,myApp->Instance,hbm,hbm1);
-	sbEq7->SetRange(24,0);
-	sbEq7->SetPos(12 - eq_values[6],1);
+	sbEq7->SetRange(24000,0);
+	sbEq7->SetPos(12000 - eq_values[6],1);
 
 
 	sbEq8 = new WScrollbar();
 	sbEq8->Create(VERT,138,150,4,60,Handle,SB_EQ8,myApp->Instance,hbm,hbm1);
-	sbEq8->SetRange(24,0);
-	sbEq8->SetPos(12 - eq_values[7],1);
+	sbEq8->SetRange(24000,0);
+	sbEq8->SetPos(12000 - eq_values[7],1);
 
 
 	sbEq9 = new WScrollbar();
 	sbEq9->Create(VERT,152,150,4,60,Handle,SB_EQ9,myApp->Instance,hbm,hbm1);
-	sbEq9->SetRange(24,0);
-	sbEq9->SetPos(12 - eq_values[8],1);
+	sbEq9->SetRange(24000,0);
+	sbEq9->SetPos(12000 - eq_values[8],1);
 
 
 	sbEq10 = new WScrollbar();
 	sbEq10->Create(VERT,166,150,4,60,Handle,SB_EQ10,myApp->Instance,hbm,hbm1);
-	sbEq10->SetRange(24,0);
-	sbEq10->SetPos(12 - eq_values[9],1);
+	sbEq10->SetRange(24000,0);
+	sbEq10->SetPos(12000 - eq_values[9],1);
 
 
 	DeleteObject(hbm);
@@ -1040,10 +668,13 @@ LRESULT MainForm::OnCreate()
 
 	
 	
+	player->SetFFTGraphParam(gpGraphType, c_nSpectrumType);
+	player->SetFFTGraphParam(gpHorizontalScale, g_FFTDisplayMode);
+	player->SetFFTGraphParam(gpWindow, c_nSpectrumWindow);
     
 	hbm = LoadBitmap(myApp->Instance, MAKEINTRESOURCE(BMP_TBMODE));
 	tbMode = new WBmpTextBox();
-	tbMode->Create(sModes[sfx_mode],207,211,52,11,Handle,TB_MODE,myApp->Instance,hbm, bmpfont);
+	tbMode->Create(sModes[0],207,211,52,11,Handle,TB_MODE,myApp->Instance,hbm, bmpfont);
 	DeleteObject(hbm);
 
  
@@ -1118,23 +749,9 @@ LRESULT MainForm::OnCreate()
 
 
 
-	mp3->EnableEQ(eq, 1);
-	mp3->SetEQParam(ExternalEQ, 12 - eq_preamp, eq_values, 10);
-	mp3->SetSfxParam(sfx, sfx_mode, (20 - sfx_delay) * 50, 12 - sfx_input, 12 - sfx_echo, 12 - sfx_output);
-		
-
-	BOOL fShow = TRUE;
-	if(c_nSpectrumType == SPECTRUM_SPECTRAL_VIEW)
-		fShow = FALSE;
-
-	tbF1->Show(fShow);
-	tbF2->Show(fShow);
-	tbF3->Show(fShow);
-	tbF4->Show(fShow);
-	tbF5->Show(fShow);
-	tbF6->Show(fShow);
-	tbF7->Show(fShow);
-	tbF8->Show(fShow);
+	player->EnableEqualizer(eq);
+	player->SetEqualizerParam(0, eq_values, 10);
+	//player->SetSfxParam(sfx, sfx_mode, (20 - sfx_delay) * 50, 12 - sfx_input, 12 - sfx_echo, 12 - sfx_output);
    
 
     return 0L;
@@ -1159,7 +776,7 @@ LRESULT MainForm::OnDestroy()
 						
 	
 
-		RegSetValueEx(registry, "fftWindow", 0, reg_type, (unsigned char*) &g_FFT_struct.nFFTWindow, size);
+		RegSetValueEx(registry, "fftWindow", 0, reg_type, (unsigned char*) &c_nSpectrumWindow, size);
 		RegSetValueEx(registry, "fftSpectrumType", 0, reg_type, (unsigned char*) &c_nSpectrumType, size);
 
 		RegSetValueEx(registry, "fftDisplayMode", 0, reg_type, (unsigned char*) &g_FFTDisplayMode, size);
@@ -1185,9 +802,9 @@ LRESULT MainForm::OnDestroy()
 
 		RegSetValueEx(registry, "sfxEnabled", 0, reg_type, (unsigned char*) &sfx, 4);
 
-		MP3_STATUS status;
-		mp3->GetStatus(&status);
-		int mode = status.nSfxMode;
+		//TStreamStatus status;
+		//player->GetStatus(&status);
+		int mode = 1;
 
 		RegSetValueEx(registry, "sfxMode", 0, reg_type, (unsigned char*) &mode, 4);
 
@@ -1204,7 +821,7 @@ LRESULT MainForm::OnDestroy()
     mainForm->KillTimer(MAIN_TIMER);
 	mainForm->KillTimer(VU_TIMER);
 
-	mp3->Close();
+	player->Close();
 
 	delete vul;
 	delete vur;
@@ -1243,16 +860,6 @@ LRESULT MainForm::OnDestroy()
 	delete btFFTWindowNext;
 	delete btFFTWindowPrev;
 	delete tbFFTWindow;
-
-
-	delete tbF1;
-	delete tbF2;
-	delete tbF3;
-	delete tbF4;
-	delete tbF5;
-	delete tbF6;
-	delete tbF7;
-	delete tbF8;
 
 
 	delete sbDelay;
@@ -1298,37 +905,6 @@ LRESULT MainForm::OnDestroy()
 	
 	DeleteObject(hbMain);
 	DeleteObject(hbTitlebar);
-
-
-	DeleteObject(hbFFT);
-	DeleteObject(hbFFTBg);
-
-
-	DeleteObject(hPenLeft); 
-	DeleteObject(hPenRight);
-	DeleteObject(hPenLeftOverlap); 
-	DeleteObject(hPenRightOverlap);
-
-	DeleteObject(hBrushFFTBackground);
-	DeleteObject(hPenBgLine);
-	DeleteObject(hPenBgLineStrong);
-
-
-	DeleteObject(hBrushFFTLeft);
-	DeleteObject(hBrushFFTRight);
-	DeleteObject(hBrushFFTLeftOverlap);
-	DeleteObject(hBrushFFTRightOverlap);
-
-
-
-
-
-	SelectObject(g_hdcSrc, g_hbmSrcOld);
-	SelectObject(g_hdcDest, g_hbmDestOld);
-	DeleteDC(g_hdcSrc);
-	DeleteDC(g_hdcDest);
-	DeleteObject(g_hbmSrc);
-	DeleteObject(g_hbmDest);
 
 
 
@@ -1408,8 +984,8 @@ LRESULT MainForm::OnHScroll(DWORD ScrollbarID, int nScrollCode, int nPos, HWND s
         			BlockTimer = TRUE; // block main timer ( no repainting )
                    
                     char text[20];
-					MP3_TIME time;
-					mp3->GetSongLength(&time);
+					TStreamInfo pInfo;
+					player->GetStreamInfo(&pInfo);
                     if(bElapsedTime)
 					{
 						unsigned int l = nPos;
@@ -1424,7 +1000,7 @@ LRESULT MainForm::OnHScroll(DWORD ScrollbarID, int nScrollCode, int nPos, HWND s
 					}
                     else
 					{
-						unsigned int l = time.sec - nPos;
+						unsigned int l = pInfo.Length.sec - nPos;
 
 						int h = l / 3600;
 						l = l % 3600;
@@ -1446,8 +1022,8 @@ LRESULT MainForm::OnHScroll(DWORD ScrollbarID, int nScrollCode, int nPos, HWND s
                 case SB_THUMBPOSITION:
                 {
 					
-					MP3_TIME time;
-					mp3->GetPosition(&time);
+					TStreamTime time;
+					player->GetPosition(&time);
 
 					if((unsigned int) nPos == time.sec)
 					{
@@ -1455,21 +1031,22 @@ LRESULT MainForm::OnHScroll(DWORD ScrollbarID, int nScrollCode, int nPos, HWND s
 						break;
 					}
 
-					MP3_STATUS status;
-					mp3->GetStatus(&status);
+					TStreamStatus status;
+					player->GetStatus(&status);
 
                     if(status.fPlay)
                     {
 						time.sec = nPos;
-                    	mp3->Seek(TIME_FORMAT_SEC, &time, SONG_BEGIN);
+                    	player->Seek(tfSecond, &time, smFromBeginning);
 						
-                        mp3->Play();
+                        player->Play();
 					
                     }
                     else
                     {
 						time.sec = nPos;
-                    	mp3->Seek(TIME_FORMAT_SEC, &time, SONG_BEGIN);
+                    	player->Seek(tfSecond, &time, smFromBeginning);
+						player->Pause();
                     }
 
 					BlockTimer = FALSE;
@@ -1493,7 +1070,7 @@ LRESULT MainForm::OnVScroll(DWORD ScrollbarID, int nScrollCode, int nPos, HWND s
         {
 			if(nScrollCode == SB_THUMBTRACK) {
                 	char tmp[20];
-                	sprintf(tmp,"Eq band 1: %i",  12 - nPos);
+                	sprintf(tmp,"Eq band 1: %i",  (12000 - nPos) / 1000);
                 	blockStatus = TRUE;
                 	tbSongStatus->SetText(tmp,1);
 					
@@ -1502,8 +1079,8 @@ LRESULT MainForm::OnVScroll(DWORD ScrollbarID, int nScrollCode, int nPos, HWND s
 			else if(nScrollCode == SB_THUMBPOSITION)
 			{
 
-				eq_values[0] = 12 - nPos;
-				mp3->SetEQParam(ExternalEQ, 12 - sbPreAmp->GetPos(), eq_values, 10);
+				eq_values[0] = 12000 - nPos;
+				player->SetEqualizerParam(12000 - sbPreAmp->GetPos(), eq_values, 10);
 
 			}
 
@@ -1517,15 +1094,15 @@ LRESULT MainForm::OnVScroll(DWORD ScrollbarID, int nScrollCode, int nPos, HWND s
         {
 			if(nScrollCode == SB_THUMBTRACK) {
                 	char tmp[20];
-                	sprintf(tmp,"Eq band 2: %i",  12 - nPos);
+                	sprintf(tmp,"Eq band 2: %i",  (12000 - nPos) / 1000);
                 	blockStatus = TRUE;
                 	tbSongStatus->SetText(tmp,1);
 					break;
             }
 
             else if(nScrollCode == SB_THUMBPOSITION) {
-				eq_values[1] = 12 - nPos;
-				mp3->SetEQParam(ExternalEQ, 12 - sbPreAmp->GetPos(), eq_values, 10);
+				eq_values[1] = 12000 - nPos;
+				player->SetEqualizerParam(12000 - sbPreAmp->GetPos(), eq_values, 10);
 
 			}
 
@@ -1538,15 +1115,15 @@ LRESULT MainForm::OnVScroll(DWORD ScrollbarID, int nScrollCode, int nPos, HWND s
         {
 			if(nScrollCode == SB_THUMBTRACK) {
                 	char tmp[20];
-                	sprintf(tmp,"Eq band 3: %i",  12 - nPos);
+                	sprintf(tmp,"Eq band 3: %i",  (12000 - nPos) / 1000);
                 	blockStatus = TRUE;
                 	tbSongStatus->SetText(tmp,1);
 					break;
             }
 
             else if(nScrollCode == SB_THUMBPOSITION) {
-				eq_values[2] = 12 - nPos;
-				mp3->SetEQParam(ExternalEQ, 12 - sbPreAmp->GetPos(), eq_values, 10);
+				eq_values[2] = 12000 - nPos;
+				player->SetEqualizerParam(12000 - sbPreAmp->GetPos(), eq_values, 10);
 
 			}
 
@@ -1559,15 +1136,15 @@ LRESULT MainForm::OnVScroll(DWORD ScrollbarID, int nScrollCode, int nPos, HWND s
         {
 			if(nScrollCode == SB_THUMBTRACK) {
                 	char tmp[20];
-                	sprintf(tmp,"Eq band 4: %i",  12 - nPos);
+					sprintf(tmp,"Eq band 4: %i",  (12000 - nPos) / 1000);
                 	blockStatus = TRUE;
                 	tbSongStatus->SetText(tmp,1);
 					break;
             }
 
             else if(nScrollCode == SB_THUMBPOSITION) {
-				eq_values[3] = 12 - nPos;
-				mp3->SetEQParam(ExternalEQ, 12 - sbPreAmp->GetPos(), eq_values, 10);
+				eq_values[3] = 12000 - nPos;
+				player->SetEqualizerParam(12000 - sbPreAmp->GetPos(), eq_values, 10);
 
 			}
 
@@ -1580,15 +1157,15 @@ LRESULT MainForm::OnVScroll(DWORD ScrollbarID, int nScrollCode, int nPos, HWND s
         {
 			if(nScrollCode == SB_THUMBTRACK) {
                 	char tmp[20];
-                	sprintf(tmp,"Eq band 5: %i",  12 - nPos);
+                	sprintf(tmp,"Eq band 5: %i",  (12000 - nPos) / 1000);
                 	blockStatus = TRUE;
                 	tbSongStatus->SetText(tmp,1);
 					break;
             }
 
             else if(nScrollCode == SB_THUMBPOSITION) {
-				eq_values[4] = 12 - nPos;
-				mp3->SetEQParam(ExternalEQ, 12 - sbPreAmp->GetPos(), eq_values, 10);
+				eq_values[4] = 12000 - nPos;
+				player->SetEqualizerParam(12000 - sbPreAmp->GetPos(), eq_values, 10);
 
 			}
 
@@ -1601,15 +1178,15 @@ LRESULT MainForm::OnVScroll(DWORD ScrollbarID, int nScrollCode, int nPos, HWND s
         {
 			if(nScrollCode == SB_THUMBTRACK) {
                 	char tmp[20];
-                	sprintf(tmp,"Eq band 6: %i",  12 - nPos);
+                	sprintf(tmp,"Eq band 6: %i",  (12000 - nPos) / 1000);
                 	blockStatus = TRUE;
                 	tbSongStatus->SetText(tmp,1);
 					break;
             }
 
             else if(nScrollCode == SB_THUMBPOSITION) {
-				eq_values[5] = 12 - nPos;
-				mp3->SetEQParam(ExternalEQ, 12 - sbPreAmp->GetPos(), eq_values, 10);
+				eq_values[5] = 12000 - nPos;
+				player->SetEqualizerParam(12000 - sbPreAmp->GetPos(), eq_values, 10);
 
 			}
 
@@ -1622,15 +1199,15 @@ LRESULT MainForm::OnVScroll(DWORD ScrollbarID, int nScrollCode, int nPos, HWND s
         {
 			if(nScrollCode == SB_THUMBTRACK) {
                 	char tmp[20];
-                	sprintf(tmp,"Eq band 7: %i",  12 - nPos);
+                	sprintf(tmp,"Eq band 7: %i",  (12000 - nPos) / 1000);
                 	blockStatus = TRUE;
                 	tbSongStatus->SetText(tmp,1);
 					break;
             }
 
             else if(nScrollCode == SB_THUMBPOSITION) {
-				eq_values[6] = 12 - nPos;
-				mp3->SetEQParam(ExternalEQ, 12 - sbPreAmp->GetPos(), eq_values, 10);
+				eq_values[6] = 12000 - nPos;
+				player->SetEqualizerParam(12000 - sbPreAmp->GetPos(), eq_values, 10);
 
 			}
 
@@ -1643,15 +1220,15 @@ LRESULT MainForm::OnVScroll(DWORD ScrollbarID, int nScrollCode, int nPos, HWND s
         {
 			if(nScrollCode == SB_THUMBTRACK) {
                 	char tmp[20];
-                	sprintf(tmp,"Eq band 8: %i",  12 - nPos);
+                	sprintf(tmp,"Eq band 8: %i",  (12000 - nPos) / 1000);
                 	blockStatus = TRUE;
                 	tbSongStatus->SetText(tmp,1);
 					break;
             }
 
             else if(nScrollCode == SB_THUMBPOSITION) {
-				eq_values[7] = 12 - nPos;
-				mp3->SetEQParam(ExternalEQ, 12 - sbPreAmp->GetPos(), eq_values, 10);
+				eq_values[7] = 12000 - nPos;
+				player->SetEqualizerParam(12000 - sbPreAmp->GetPos(), eq_values, 10);
 
 			}
 
@@ -1664,15 +1241,15 @@ LRESULT MainForm::OnVScroll(DWORD ScrollbarID, int nScrollCode, int nPos, HWND s
         {
 			if(nScrollCode == SB_THUMBTRACK) {
                 	char tmp[20];
-                	sprintf(tmp,"Eq band 9: %i",  12 - nPos);
+                	sprintf(tmp,"Eq band 9: %i",  (12000 - nPos) / 1000);
                 	blockStatus = TRUE;
                 	tbSongStatus->SetText(tmp,1);
 					break;
             }
 
             else if(nScrollCode == SB_THUMBPOSITION) {
-				eq_values[8] = 12 - nPos;
-				mp3->SetEQParam(ExternalEQ, 12 - sbPreAmp->GetPos(), eq_values, 10);
+				eq_values[8] = 12000 - nPos;
+				player->SetEqualizerParam(12000 - sbPreAmp->GetPos(), eq_values, 10);
 
 			}
 
@@ -1685,15 +1262,15 @@ LRESULT MainForm::OnVScroll(DWORD ScrollbarID, int nScrollCode, int nPos, HWND s
         {
 			if(nScrollCode == SB_THUMBTRACK) {
                 	char tmp[20];
-                	sprintf(tmp,"Eq band 10: %i",  12 - nPos);
+                	sprintf(tmp,"Eq band 10: %i",  (12000 - nPos) / 1000);
                 	blockStatus = TRUE;
                 	tbSongStatus->SetText(tmp,1);
 					break;
             }
 
             else if(nScrollCode == SB_THUMBPOSITION) {
-				eq_values[9] = 12 - nPos;
-				mp3->SetEQParam(ExternalEQ, 12 - sbPreAmp->GetPos(), eq_values, 10);
+				eq_values[9] = 12000 - nPos;
+				player->SetEqualizerParam(12000 - sbPreAmp->GetPos(), eq_values, 10);
 
 			}
 
@@ -1706,14 +1283,14 @@ LRESULT MainForm::OnVScroll(DWORD ScrollbarID, int nScrollCode, int nPos, HWND s
         {
 			if(nScrollCode == SB_THUMBTRACK) {
                 	char tmp[20];
-                	sprintf(tmp,"Eq preamp: %i",  12 - nPos);
+                	sprintf(tmp,"Eq preamp: %i",  (12000 - nPos) / 1000);
                 	blockStatus = TRUE;
                 	tbSongStatus->SetText(tmp,1);
 				break;
             }
 
             else if(nScrollCode == SB_THUMBPOSITION) {
-				mp3->SetEQParam(ExternalEQ, 12 - sbPreAmp->GetPos(), eq_values, 10);
+				player->SetEqualizerPreampGain(12000 - sbPreAmp->GetPos());
 
 			}
 
@@ -1732,10 +1309,10 @@ LRESULT MainForm::OnVScroll(DWORD ScrollbarID, int nScrollCode, int nPos, HWND s
                 	tbSongStatus->SetText(tmp,1);
             }
             else {
-				MP3_STATUS status;
-				mp3->GetStatus(&status);
-				int mode = status.nSfxMode;
-				mp3->SetSfxParam(sfx, mode, (20 - sbDelay->GetPos()) * 50,(12 - sbInput->GetPos()), (12 - sbEcho->GetPos()), (12 - sbOutput->GetPos()));	
+				//MP3_STATUS status;
+				//mp3->GetStatus(&status);
+				//int mode = status.nSfxMode;
+				//mp3->SetSfxParam(sfx, mode, (20 - sbDelay->GetPos()) * 50,(12 - sbInput->GetPos()), (12 - sbEcho->GetPos()), (12 - sbOutput->GetPos()));	
 				
             	blockStatus = FALSE;
             }  
@@ -1753,10 +1330,10 @@ LRESULT MainForm::OnVScroll(DWORD ScrollbarID, int nScrollCode, int nPos, HWND s
                 	tbSongStatus->SetText(tmp,1);
             }
             else {
-				MP3_STATUS status;
-				mp3->GetStatus(&status);
-				int mode = status.nSfxMode;
-				mp3->SetSfxParam(sfx, mode, (20 - sbDelay->GetPos()) * 50,(12 - sbInput->GetPos()) , (12 - sbEcho->GetPos()) , (12 - sbOutput->GetPos()));	
+				//MP3_STATUS status;
+				//mp3->GetStatus(&status);
+				//int mode = status.nSfxMode;
+				//mp3->SetSfxParam(sfx, mode, (20 - sbDelay->GetPos()) * 50,(12 - sbInput->GetPos()) , (12 - sbEcho->GetPos()) , (12 - sbOutput->GetPos()));	
 			
             	blockStatus = FALSE;
             }  
@@ -1774,10 +1351,10 @@ LRESULT MainForm::OnVScroll(DWORD ScrollbarID, int nScrollCode, int nPos, HWND s
                 	tbSongStatus->SetText(tmp,1);
             }
             else {
-				MP3_STATUS status;
-				mp3->GetStatus(&status);
-				int mode = status.nSfxMode;
-				mp3->SetSfxParam(sfx, mode, (20 - sbDelay->GetPos()) * 50,(12 - sbInput->GetPos()) , (12 - sbEcho->GetPos()) , (12 - sbOutput->GetPos()));	
+				//MP3_STATUS status;
+				//mp3->GetStatus(&status);
+				//int mode = status.nSfxMode;
+				//mp3->SetSfxParam(sfx, mode, (20 - sbDelay->GetPos()) * 50,(12 - sbInput->GetPos()) , (12 - sbEcho->GetPos()) , (12 - sbOutput->GetPos()));	
 			
             	blockStatus = FALSE;
             }  
@@ -1802,10 +1379,10 @@ LRESULT MainForm::OnVScroll(DWORD ScrollbarID, int nScrollCode, int nPos, HWND s
             }
 
             else {
-				MP3_STATUS status;
-				mp3->GetStatus(&status);
-				int mode = status.nSfxMode;
-				mp3->SetSfxParam(sfx, mode, (20 - sbDelay->GetPos()) * 50,(12 - sbInput->GetPos()) , (12 - sbEcho->GetPos()), (12 - sbOutput->GetPos()));	
+				//MP3_STATUS status;
+				//mp3->GetStatus(&status);
+				//int mode = status.nSfxMode;
+				//mp3->SetSfxParam(sfx, mode, (20 - sbDelay->GetPos()) * 50,(12 - sbInput->GetPos()) , (12 - sbEcho->GetPos()), (12 - sbOutput->GetPos()));	
 			
 
             	blockStatus = FALSE;
@@ -1826,7 +1403,7 @@ LRESULT MainForm::OnVScroll(DWORD ScrollbarID, int nScrollCode, int nPos, HWND s
                 	blockStatus = TRUE;
                 	tbSongStatus->SetText(tmp,1);
 
-                	mp3->SetVolume((int) (100 - nPos), (int) (100 - sbRvolume->GetPos()));
+					player->SetPlayerVolume((int) (100 - nPos), (int) (100 - sbRvolume->GetPos()));
             }
 
             else {
@@ -1851,7 +1428,7 @@ LRESULT MainForm::OnVScroll(DWORD ScrollbarID, int nScrollCode, int nPos, HWND s
                 blockStatus = TRUE;
                 tbSongStatus->SetText(tmp,1);
 
-                  mp3->SetVolume((int) (100 - sbLvolume->GetPos()), (int) (100 - nPos));
+                  player->SetPlayerVolume((int) (100 - sbLvolume->GetPos()), (int) (100 - nPos));
             }
             else {
 				
@@ -1957,10 +1534,10 @@ LRESULT MainForm::OnTimer(UINT idTimer)
 			
             if(!blockStatus)
             {
-            	MP3_STATUS status;
-				mp3->GetStatus(&status);
+            	TStreamStatus status;
+				player->GetStatus(&status);
         	
-        			if(status.fStop)
+        			if(!status.fPlay)
             			strcpy(text,"Stop   ");
 					if(status.fPlay)
                 		strcpy(text,"Playing");
@@ -1973,22 +1550,22 @@ LRESULT MainForm::OnTimer(UINT idTimer)
 
   
 
-			MP3_TIME time;
-			mp3->GetPosition(&time);
+			TStreamTime time;
+			player->GetPosition(&time);
 			sbSeek->SetPos(time.sec);
 
-            sprintf(text, "%i", mp3->GetBitrate(0));
+            sprintf(text, "%i", player->GetBitrate(0));
 			
             tbSongBitrate->SetText(text,1);
-			MP3_TIME length;
-			mp3->GetSongLength(&length);
+			TStreamInfo info;
+			player->GetStreamInfo(&info);
 
             if(bElapsedTime)
-            	sprintf(text,"%02i:%02i:%02i", time.hms_hour, time.hms_minute, time.hms_second);
+            	sprintf(text,"%02i:%02i:%02i", time.hms.hour, time.hms.minute, time.hms.second);
 
 			else
 			{
-				unsigned int l = length.sec - time.sec;
+				unsigned int l = info.Length.sec - time.sec;
 
 				int h = l / 3600;
 				l = l % 3600;
@@ -2011,528 +1588,27 @@ LRESULT MainForm::OnTimer(UINT idTimer)
 
 		case VU_TIMER:
         {
-			
-				unsigned int left;
-				unsigned int right;
-            	MP3_STATUS status;
-				 mp3->GetStatus(&status);
-        		if(status.fPlay) {
+			unsigned int left;
+			unsigned int right;
+			TStreamStatus status;
+			player->GetStatus(&status);
+        	if(status.fPlay) {
 				
-					mp3->GetVUData(&left,&right);
-
-					vul->SetPos(left);
-					vur->SetPos(right);
-					int i;
-
-
-					
-					// get main dc
-					HDC hdc = GetDC(Handle);
-
-					if(mp3->GetFFTValues(&g_FFT_struct))
-					{
-					
-						for(i = 0; i < VU_EQ_NUM; i++)
-						{
-							FFT_Left[i].y =  (FFT_Left[i].y + (FFTDisplayRect.bottom -  g_FFT_struct.pnLeftAmplitude[i + 1] )) / 2;
-							FFT_Right[i].y =  (FFT_Right[i].y + (FFTDisplayRect.bottom -  g_FFT_struct.pnRightAmplitude[i + 1] )) / 2;
-							FFT_Tmp[i].y = max(FFT_Left[i].y, FFT_Right[i].y);
-						}
-					
-						FFT_Left[VU_EQ_NUM + 2].x = FFT_Left[0].x;
-						FFT_Left[VU_EQ_NUM + 2].y = FFT_Left[0].y;
-
-						FFT_Right[VU_EQ_NUM + 2].x = FFT_Right[0].x;
-						FFT_Right[VU_EQ_NUM + 2].y = FFT_Right[0].y;
-
-						FFT_Tmp[VU_EQ_NUM + 2].x = FFT_Tmp[0].x;
-						FFT_Tmp[VU_EQ_NUM + 2].y = FFT_Tmp[0].y;
-					
-
-						switch(c_nSpectrumType)
-						{
-
-							
-
-							default:
-							case SPECTRUM_LINES:
-							{
-								// seelct bg bitmap into tmp dc
-								HBITMAP hBmpOld = (HBITMAP) SelectObject(g_hdcSrc, 	hbFFTBg);
-								// draw bg bitmap into memory DC
-								BitBlt(g_hdcDest, 0, 0, FFT_DISPLAY_WIDTH, FFT_DISPLAY_HEIGHT, g_hdcSrc, 0, 0, SRCCOPY);
-								SelectObject(g_hdcSrc, hBmpOld);
-				
-
-								HPEN hOldPen = (HPEN) SelectObject(g_hdcDest, hPenLeft);
-								Polyline(g_hdcDest, FFT_Left, VU_EQ_NUM);
-								SelectObject(g_hdcDest, hPenRight);
-								Polyline(g_hdcDest, FFT_Right, VU_EQ_NUM);
-
-								SelectObject(g_hdcDest, hOldPen);
-
-							}
-							break;
-
-							case SPECTRUM_AREA_LEFT:
-							case SPECTRUM_AREA_RIGHT:
-							{
-							
-								// seelct bg bitmap into tmp dc
-								HBITMAP hBmpOld = (HBITMAP) SelectObject(g_hdcSrc, hbFFTBg);
-								// draw bg bitmap into memory DC
-								BitBlt(g_hdcDest, 0, 0, FFT_DISPLAY_WIDTH, FFT_DISPLAY_HEIGHT, g_hdcSrc, 0, 0, SRCCOPY);
-				
-								// select temp bitmap into temp hdc
-								SelectObject(g_hdcSrc, hBmpOld);
-								// fill temp dc with black color
-								FillRect(g_hdcSrc, &FFTDisplayRect, (HBRUSH) GetStockObject(BLACK_BRUSH));
-
-								// prepare area bounds
-								FFT_Left[VU_EQ_NUM ].x = VU_EQ_NUM;
-								FFT_Left[VU_EQ_NUM ].y = FFT_DISPLAY_HEIGHT;
-								FFT_Left[VU_EQ_NUM + 1].x = 0;
-								FFT_Left[VU_EQ_NUM + 1].y = FFT_DISPLAY_HEIGHT;
-
-								FFT_Tmp[VU_EQ_NUM ].x = VU_EQ_NUM;
-								FFT_Tmp[VU_EQ_NUM ].y = FFT_DISPLAY_HEIGHT;
-								FFT_Tmp[VU_EQ_NUM + 1].x = 0;
-								FFT_Tmp[VU_EQ_NUM + 1].y = FFT_DISPLAY_HEIGHT;
-
-								FFT_Right[VU_EQ_NUM ].x = FFT_Left[VU_EQ_NUM ].x;
-								FFT_Right[VU_EQ_NUM ].y = FFT_Left[VU_EQ_NUM ].y;
-								FFT_Right[VU_EQ_NUM + 1].x = FFT_Left[VU_EQ_NUM + 1].x;
-								FFT_Right[VU_EQ_NUM + 1].y = FFT_Left[VU_EQ_NUM + 1].y;
-
-								HPEN hOldPen;
-								HRGN hRgn;
-
-								if(c_nSpectrumType == SPECTRUM_AREA_RIGHT)
-								{
-									// draw left channel area
-									hRgn = CreatePolygonRgn(FFT_Left, VU_EQ_NUM + 3, ALTERNATE	);
-									FillRgn(g_hdcSrc, hRgn, hBrushFFTLeft);
-									DeleteObject(hRgn);
-									
-									// draw right channel area
-									hRgn = CreatePolygonRgn(FFT_Right, VU_EQ_NUM + 3, ALTERNATE	);
-									FillRgn(g_hdcSrc, hRgn, hBrushFFTRight);
-									DeleteObject(hRgn);
-									
-									// draw overlaped area
-									hRgn = CreatePolygonRgn(FFT_Tmp, VU_EQ_NUM + 3, ALTERNATE	);
-									FillRgn(g_hdcSrc, hRgn, hBrushFFTRightOverlap);
-									DeleteObject(hRgn);
-
-									// alpha blend areas on bg bitmap
-									alpha_blend();
-
-								
-
-									// draw left channel line
-									hOldPen = (HPEN) SelectObject(g_hdcDest, hPenLeft);
-									Polyline(g_hdcDest, FFT_Left, VU_EQ_NUM);
-
-									// draw overlaped line
-									SelectObject(g_hdcDest, hPenLeftOverlap);
-									Polyline(g_hdcDest, FFT_Tmp, VU_EQ_NUM);
-
-									// draw right channel line
-									
-									SelectObject(g_hdcDest, hPenRight);
-									Polyline(g_hdcDest, FFT_Right, VU_EQ_NUM);
-
-									SelectObject(g_hdcDest, hOldPen);
-
-
-									
-
-
-								}
-								else
-								{
-									
-									
-									// draw right channel area
-									hRgn = CreatePolygonRgn(FFT_Right, VU_EQ_NUM + 3, ALTERNATE	);
-									FillRgn(g_hdcSrc, hRgn, hBrushFFTRight);
-									DeleteObject(hRgn);
-
-									// draw left channel area
-									hRgn = CreatePolygonRgn(FFT_Left, VU_EQ_NUM + 3, ALTERNATE	);
-									FillRgn(g_hdcSrc, hRgn, hBrushFFTLeft);
-									DeleteObject(hRgn);
-									
-									// draw overlaped area
-									hRgn = CreatePolygonRgn(FFT_Tmp, VU_EQ_NUM + 3, ALTERNATE	);
-									FillRgn(g_hdcSrc, hRgn, hBrushFFTLeftOverlap);
-									DeleteObject(hRgn);
-
-									// alpha blend areas on bg bitmap
-									alpha_blend();
-
-									// draw right channel line
-									
-									hOldPen = (HPEN) SelectObject(g_hdcDest, hPenRight);
-									Polyline(g_hdcDest, FFT_Right, VU_EQ_NUM);
-
-									// draw overlaped line
-									SelectObject(g_hdcDest, hPenRightOverlap);
-									Polyline(g_hdcDest, FFT_Tmp, VU_EQ_NUM);
-
-									// draw left channel line
-									hOldPen = (HPEN) SelectObject(g_hdcDest, hPenLeft);
-									Polyline(g_hdcDest, FFT_Left, VU_EQ_NUM);
-
-									SelectObject(g_hdcDest, hOldPen);
-
-
-								}
-
-							}
-							break;
-
-							case SPECTRUM_BARS_LEFT:
-							case SPECTRUM_BARS_RIGHT:
-							{
-
-									// seelct bg bitmap into tmp dc
-								HBITMAP hBmpOld = (HBITMAP) SelectObject(g_hdcSrc, hbFFTBg);
-								// draw bg bitmap into memory DC
-								BitBlt(g_hdcDest, 0, 0, FFT_DISPLAY_WIDTH, FFT_DISPLAY_HEIGHT, g_hdcSrc, 0, 0, SRCCOPY);
-				
-								// select temp bitmap into temp hdc
-								SelectObject(g_hdcSrc, hBmpOld);
-								// fill temp dc with black color
-								FillRect(g_hdcSrc, &FFTDisplayRect, (HBRUSH) GetStockObject(BLACK_BRUSH));
-
-				
-						
-								if(c_nSpectrumType == SPECTRUM_BARS_RIGHT)
-								{
-									for(i = 0; i < VU_EQ_NUM - 1; i++)
-									{
-										FFT_Tmp1[i * 2].x = FFT_Left[i].x;
-										FFT_Tmp1[i * 2].y = FFT_Left[i].y;
-										FFT_Tmp1[i * 2 + 1].x = FFT_Left[i + 1].x;
-										FFT_Tmp1[i * 2 + 1].y = FFT_Left[i].y;
-									}
-
-						
-
-									FFT_Tmp1[(VU_EQ_NUM - 1) * 2].x = FFT_Left[VU_EQ_NUM - 1].x;
-									FFT_Tmp1[(VU_EQ_NUM - 1) * 2].y = FFT_Left[VU_EQ_NUM - 1].y;
-									FFT_Tmp1[(VU_EQ_NUM - 1) * 2 + 1].x = FFT_Left[VU_EQ_NUM - 1].x;
-									FFT_Tmp1[(VU_EQ_NUM - 1) * 2 + 1].y = FFT_DISPLAY_HEIGHT;
-									FFT_Tmp1[VU_EQ_NUM  * 2].x = 0;
-									FFT_Tmp1[VU_EQ_NUM  * 2].y = FFT_DISPLAY_HEIGHT;
-									FFT_Tmp1[VU_EQ_NUM  * 2 + 1].x = 0;
-									FFT_Tmp1[VU_EQ_NUM  * 2 + 1].y = FFT_Tmp1[0].y;
-
-									HRGN hRgn;
-
-									// draw left channel area
-									hRgn = CreatePolygonRgn(FFT_Tmp1, VU_EQ_NUM * 2 + 2, ALTERNATE	);
-									FillRgn(g_hdcSrc, hRgn, hBrushFFTLeft);
-									DeleteObject(hRgn);
-
-
-									for(i = 0; i < VU_EQ_NUM - 1; i++)
-									{
-										FFT_Tmp2[i * 2].x = FFT_Right[i].x;
-										FFT_Tmp2[i * 2].y = FFT_Right[i].y;
-										FFT_Tmp2[i * 2 + 1].x = FFT_Right[i + 1].x;
-										FFT_Tmp2[i * 2 + 1].y = FFT_Right[i].y;
-									}
-
-									FFT_Tmp2[(VU_EQ_NUM - 1) * 2].x = FFT_Right[VU_EQ_NUM - 1].x;
-									FFT_Tmp2[(VU_EQ_NUM - 1) * 2].y = FFT_Right[VU_EQ_NUM - 1].y;
-									FFT_Tmp2[(VU_EQ_NUM - 1) * 2 + 1].x = FFT_Right[VU_EQ_NUM - 1].x;
-									FFT_Tmp2[(VU_EQ_NUM - 1) * 2 + 1].y = FFT_DISPLAY_HEIGHT;
-									FFT_Tmp2[VU_EQ_NUM  * 2].x = 0;
-									FFT_Tmp2[VU_EQ_NUM  * 2].y = FFT_DISPLAY_HEIGHT;
-									FFT_Tmp2[VU_EQ_NUM  * 2 + 1].x = 0;
-									FFT_Tmp2[VU_EQ_NUM  * 2 + 1].y = FFT_Tmp2[0].y;
-
-									// draw right channel area
-									hRgn = CreatePolygonRgn(FFT_Tmp2, VU_EQ_NUM * 2 + 2, ALTERNATE	);
-									FillRgn(g_hdcSrc, hRgn, hBrushFFTRight);
-									DeleteObject(hRgn);
-
-									
-
-									for(i = 0; i < VU_EQ_NUM - 1; i++)
-									{
-										FFT_Tmp3[i * 2].x = FFT_Tmp[i].x;
-										FFT_Tmp3[i * 2].y = FFT_Tmp[i].y;
-										FFT_Tmp3[i * 2 + 1].x = FFT_Tmp[i + 1].x;
-										FFT_Tmp3[i * 2 + 1].y = FFT_Tmp[i].y;
-									}
-
-									FFT_Tmp3[(VU_EQ_NUM - 1) * 2].x = FFT_Tmp[VU_EQ_NUM - 1].x;
-									FFT_Tmp3[(VU_EQ_NUM - 1) * 2].y = FFT_Tmp[VU_EQ_NUM - 1].y;
-									FFT_Tmp3[(VU_EQ_NUM - 1) * 2 + 1].x = FFT_Left[VU_EQ_NUM - 1].x;
-									FFT_Tmp3[(VU_EQ_NUM - 1) * 2 + 1].y = FFT_DISPLAY_HEIGHT;
-									FFT_Tmp3[VU_EQ_NUM  * 2].x = 0;
-									FFT_Tmp3[VU_EQ_NUM  * 2].y = FFT_DISPLAY_HEIGHT;
-									FFT_Tmp3[VU_EQ_NUM  * 2 + 1].x = 0;
-									FFT_Tmp3[VU_EQ_NUM  * 2 + 1].y = FFT_Tmp3[0].y;
-
-
-									// draw overlap area
-									hRgn = CreatePolygonRgn(FFT_Tmp3, VU_EQ_NUM * 2 + 2, ALTERNATE	);
-									FillRgn(g_hdcSrc, hRgn, hBrushFFTRightOverlap);
-									DeleteObject(hRgn);
-
-									alpha_blend();
-
-									
-
-									HPEN hOldPen;
-
-									// draw left channel line
-									hOldPen = (HPEN)  SelectObject(g_hdcDest, hPenLeft);
-									Polyline(g_hdcDest, FFT_Tmp1, VU_EQ_NUM * 2 - 1);
-									
-									// draw overlaped line
-									SelectObject(g_hdcDest, hPenRightOverlap);
-									Polyline(g_hdcDest, FFT_Tmp3, VU_EQ_NUM * 2 - 1);
-
-									// draw right channel line
-									SelectObject(g_hdcDest, hPenRight);
-									Polyline(g_hdcDest, FFT_Tmp2, VU_EQ_NUM * 2 - 1);
-
-								
-
-									SelectObject(g_hdcDest, hOldPen);
-								}
-								else
-								{
-									for(i = 0; i < VU_EQ_NUM - 1; i++)
-									{
-										FFT_Tmp1[i * 2].x = FFT_Right[i].x;
-										FFT_Tmp1[i * 2].y = FFT_Right[i].y;
-										FFT_Tmp1[i * 2 + 1].x = FFT_Right[i + 1].x;
-										FFT_Tmp1[i * 2 + 1].y = FFT_Right[i].y;
-									}
-
-						
-
-									FFT_Tmp1[(VU_EQ_NUM - 1) * 2].x = FFT_Right[VU_EQ_NUM - 1].x;
-									FFT_Tmp1[(VU_EQ_NUM - 1) * 2].y = FFT_Right[VU_EQ_NUM - 1].y;
-									FFT_Tmp1[(VU_EQ_NUM - 1) * 2 + 1].x = FFT_Right[VU_EQ_NUM - 1].x;
-									FFT_Tmp1[(VU_EQ_NUM - 1) * 2 + 1].y = FFT_DISPLAY_HEIGHT;
-									FFT_Tmp1[VU_EQ_NUM  * 2].x = 0;
-									FFT_Tmp1[VU_EQ_NUM  * 2].y = FFT_DISPLAY_HEIGHT;
-									FFT_Tmp1[VU_EQ_NUM  * 2 + 1].x = 0;
-									FFT_Tmp1[VU_EQ_NUM  * 2 + 1].y = FFT_Tmp1[0].y;
-
-									HRGN hRgn;
-
-									// draw right channel area
-									hRgn = CreatePolygonRgn(FFT_Tmp1, VU_EQ_NUM * 2 + 2, ALTERNATE	);
-									FillRgn(g_hdcSrc, hRgn, hBrushFFTRight);
-									DeleteObject(hRgn);
-
-
-									for(i = 0; i < VU_EQ_NUM - 1; i++)
-									{
-										FFT_Tmp2[i * 2].x = FFT_Left[i].x;
-										FFT_Tmp2[i * 2].y = FFT_Left[i].y;
-										FFT_Tmp2[i * 2 + 1].x = FFT_Left[i + 1].x;
-										FFT_Tmp2[i * 2 + 1].y = FFT_Left[i].y;
-									}
-
-									FFT_Tmp2[(VU_EQ_NUM - 1) * 2].x = FFT_Left[VU_EQ_NUM - 1].x;
-									FFT_Tmp2[(VU_EQ_NUM - 1) * 2].y = FFT_Left[VU_EQ_NUM - 1].y;
-									FFT_Tmp2[(VU_EQ_NUM - 1) * 2 + 1].x = FFT_Left[VU_EQ_NUM - 1].x;
-									FFT_Tmp2[(VU_EQ_NUM - 1) * 2 + 1].y = FFT_DISPLAY_HEIGHT;
-									FFT_Tmp2[VU_EQ_NUM  * 2].x = 0;
-									FFT_Tmp2[VU_EQ_NUM  * 2].y = FFT_DISPLAY_HEIGHT;
-									FFT_Tmp2[VU_EQ_NUM  * 2 + 1].x = 0;
-									FFT_Tmp2[VU_EQ_NUM  * 2 + 1].y = FFT_Tmp2[0].y;
-
-
-									// draw left channel area
-									hRgn = CreatePolygonRgn(FFT_Tmp2, VU_EQ_NUM * 2 + 2, ALTERNATE	);
-									FillRgn(g_hdcSrc, hRgn, hBrushFFTLeft);
-									DeleteObject(hRgn);
-
-									for(i = 0; i < VU_EQ_NUM - 1; i++)
-									{
-										FFT_Tmp3[i * 2].x = FFT_Tmp[i].x;
-										FFT_Tmp3[i * 2].y = FFT_Tmp[i].y;
-										FFT_Tmp3[i * 2 + 1].x = FFT_Tmp[i + 1].x;
-										FFT_Tmp3[i * 2 + 1].y = FFT_Tmp[i].y;
-									}
-
-									FFT_Tmp3[(VU_EQ_NUM - 1) * 2].x = FFT_Tmp[VU_EQ_NUM - 1].x;
-									FFT_Tmp3[(VU_EQ_NUM - 1) * 2].y = FFT_Tmp[VU_EQ_NUM - 1].y;
-									FFT_Tmp3[(VU_EQ_NUM - 1) * 2 + 1].x = FFT_Left[VU_EQ_NUM - 1].x;
-									FFT_Tmp3[(VU_EQ_NUM - 1) * 2 + 1].y = FFT_DISPLAY_HEIGHT;
-									FFT_Tmp3[VU_EQ_NUM  * 2].x = 0;
-									FFT_Tmp3[VU_EQ_NUM  * 2].y = FFT_DISPLAY_HEIGHT;
-									FFT_Tmp3[VU_EQ_NUM  * 2 + 1].x = 0;
-									FFT_Tmp3[VU_EQ_NUM  * 2 + 1].y = FFT_Tmp3[0].y;
-
-
-									// draw left channel area
-									hRgn = CreatePolygonRgn(FFT_Tmp3, VU_EQ_NUM * 2 + 2, ALTERNATE	);
-									FillRgn(g_hdcSrc, hRgn, hBrushFFTLeftOverlap);
-									DeleteObject(hRgn);
-
-									alpha_blend();
-
-									// draw right channel line
-									
-									HPEN hOldPen = (HPEN) SelectObject(g_hdcDest, hPenRight);
-									Polyline(g_hdcDest, FFT_Tmp1, VU_EQ_NUM * 2 - 1);
-
-									// draw overlaped line
-									SelectObject(g_hdcDest, hPenRightOverlap);
-									Polyline(g_hdcDest, FFT_Tmp3, VU_EQ_NUM * 2 - 1);
-
-									// draw left channel line
-									SelectObject(g_hdcDest, hPenLeft);
-									Polyline(g_hdcDest, FFT_Tmp2, VU_EQ_NUM * 2 - 1);
-
-									SelectObject(g_hdcDest, hOldPen);
-
-								}
-								
-
-							}
-							break;
-
-
-
-							case SPECTRUM_SPECTRAL_VIEW:
-							{
-								
-
-								if(g_clearFFTDisplay)
-								{
-
-									RECT rc;
-									rc.left = 0;
-									rc.top = 0;
-									rc.right = FFT_DISPLAY_WIDTH;
-									rc.bottom = FFT_DISPLAY_HEIGHT;
-
-									FillRect(g_hdcDest, &rc, (HBRUSH) GetStockObject(BLACK_BRUSH));
-								
-
-									g_clearFFTDisplay = 0;
-									g_fft_pos = 0;
-								}
-
-
-								int i;
-								int j;
-								int value;
-							
-								for (j = 0; j < FFT_DISPLAY_HEIGHT - 1; ++j)
-								{
-									value = 0;													
-									register BYTE *pbDestRGB = (BYTE*) ((DWORD*) g_pDestBits + ( j  * FFT_DISPLAY_WIDTH) + g_fft_pos);
-									
-									for(i = 0; i < 2; i++)
-									{
-										value = max(value, ( g_FFT_struct.pnLeftAmplitude[j * 2 + i + 1] + g_FFT_struct.pnRightAmplitude[j * 2 + i + 1]) / 2);
-									
-									}
-									
-									if(value > 120)
-										value = 120;
-
-									pbDestRGB[0]= g_rgb_table[value].rgbBlue;
-									pbDestRGB[1] = g_rgb_table[value].rgbGreen;
-									pbDestRGB[2] = g_rgb_table[value].rgbRed;
-									
-
-								}
-
-								j = FFT_DISPLAY_HEIGHT - 1;
-								value = 0;													
-								register BYTE *pbDestRGB = (BYTE*) ((DWORD*) g_pDestBits + ( j  * FFT_DISPLAY_WIDTH) + g_fft_pos);
-									
-								for(i = 0; i < 17; i++)
-								{
-									value = max(value, ( g_FFT_struct.pnLeftAmplitude[j * 2 + i + 1] + g_FFT_struct.pnRightAmplitude[j * 2 + i + 1]) / 2);
-									
-								}
-									
-								if(value > 120)
-									value = 120;
-
-								pbDestRGB[0]= g_rgb_table[value].rgbBlue;
-								pbDestRGB[1] = g_rgb_table[value].rgbGreen;
-								pbDestRGB[2] = g_rgb_table[value].rgbRed;
-
-							
-							
-								
-								
-								g_fft_pos++;
-								if(g_fft_pos >= FFT_DISPLAY_WIDTH)
-									g_fft_pos = 0;
-
-								
-								for (j = 0; j < FFT_DISPLAY_HEIGHT; ++j)
-								{
-									register BYTE *pbDestRGB = (BYTE*) ((DWORD*) g_pDestBits + ( j  * FFT_DISPLAY_WIDTH ) + g_fft_pos);
-									
-									pbDestRGB[0]= 200;
-									pbDestRGB[1] = 200;
-									pbDestRGB[2] = 200;
-
-								}
-								
-
-							}
-							break;
-
-						
-						}
-					}
-
-	
-					BitBlt(hdc, FFT_X, FFT_Y, FFT_DISPLAY_WIDTH,
-								FFT_DISPLAY_HEIGHT, g_hdcDest,0,0, SRCCOPY); 
-
-
-					ReleaseDC(Handle, hdc);
-	
-			
-
-				}
-				else if(status.fStop) {
-					left = 0;
-					right = 0;
-					vul->SetPos(left);
-					vur->SetPos(right);
-					HDC hdc = GetDC(Handle);
-					HDC hdcmem = CreateCompatibleDC(hdc);
-					HBITMAP old = (HBITMAP) SelectObject(hdcmem, hbFFTBg);
-					BitBlt(hdc, FFT_X, FFT_Y, FFTDisplayRect.right, FFTDisplayRect.bottom ,  hdcmem, 0, 0, SRCCOPY);
-					SelectObject(hdcmem, old);
-					DeleteDC(hdcmem);
-					ReleaseDC(Handle, hdc);
-
-
-					int i;
-					for(i = 0; i < VU_EQ_NUM ; i++)
-					{
-							FFT_Left[i].y =  FFT_DISPLAY_HEIGHT;
-							FFT_Right[i].y =  FFT_DISPLAY_HEIGHT;
-					}
-
-				}
-
-			
-
-			
-
+				player->GetVUData(&left,&right);
+
+				vul->SetPos(left);
+				vur->SetPos(right);
+
+				player->DrawFFTGraphOnHWND(Handle, FFT_X, FFT_Y, FFT_DISPLAY_WIDTH, FFT_DISPLAY_HEIGHT);
+			}
+			else if(!status.fPlay) {
+				left = 0;
+				right = 0;
+				vul->SetPos(left);
+				vur->SetPos(right);
+
+				player->DrawFFTGraphOnHWND(Handle, FFT_X, FFT_Y, FFT_DISPLAY_WIDTH, FFT_DISPLAY_HEIGHT);
+			}
         }
         break;
 
@@ -2551,8 +1627,9 @@ LRESULT MainForm::OnCommand(int wNotifyCode, int ControlID, HWND hWndControl)
 		case M_ABOUT:
 		{
 		
-			char message[] = "Mp3Exe Player ver.2.4  based on LIBWMP3 ver.2.4\n"
+			char message[] = "Mp3Exe Player ver.2.4  based on LibZPlay ver.2.02\n"
 							"\n"
+							"https://github.com/oddlf/mp3exe_libzplay\n"
 							"http://www.inet.hr/~zcindori/mp3exe/\n"
 							"http://www.inet.hr/~zcindori/libwmp3/\n"
 							"\n"
@@ -2576,120 +1653,76 @@ LRESULT MainForm::OnCommand(int wNotifyCode, int ControlID, HWND hWndControl)
 
 		case BT_LINEAR:
 		{
-			if(g_FFTDisplayMode == 0)
-				g_FFTDisplayMode = 1;
+			if(g_FFTDisplayMode == gsLogarithmic)
+				g_FFTDisplayMode = gsLinear;
 			else
-				g_FFTDisplayMode = 0;
+				g_FFTDisplayMode = gsLogarithmic;
 
-			FFT_STRUCT fft;
-			memset(&fft, 0, sizeof(FFT_STRUCT));
-			fft.nFFTPoints = FFT_SIZE;
-			fft.pnHarmonicFreq = c_HarmonicFreq;
-
-			mp3->GetFFTValues(&fft);
-			prepare_fft_x(g_FFTDisplayMode, fft.nHarmonicNumber , fft.pnHarmonicFreq, VU_EQ_NUM, FFT_Left, FFT_Right);
-    			
-
-
+			player->SetFFTGraphParam(gpHorizontalScale, g_FFTDisplayMode);
 		}
 		break;
 
 		case TB_FFT_WINDOW:
 		case  BT_FFT_WINDOW_NEXT:
 		{
-			if(g_FFT_struct.nFFTWindow == FFT_WINDOW_NUM)
-				g_FFT_struct.nFFTWindow = 1;
+			if(c_nSpectrumWindow == fwFlatTop)
+				c_nSpectrumWindow = fwRectangular;
 			else
-				g_FFT_struct.nFFTWindow++;
-				
-			tbFFTWindow->SetText(g_szFFTWindow[g_FFT_struct.nFFTWindow - 1], TRUE);	
-	
+				++c_nSpectrumWindow;
 
+			player->SetFFTGraphParam(gpWindow, c_nSpectrumWindow);
+			tbFFTWindow->SetText(g_szFFTWindow[c_nSpectrumWindow - 1], TRUE);	
 		}
 		break;
 
 		case  BT_FFT_WINDOW_PREV:
 		{
-			if(g_FFT_struct.nFFTWindow == 1)
-				g_FFT_struct.nFFTWindow = FFT_WINDOW_NUM;
+			if(c_nSpectrumWindow == fwRectangular)
+				c_nSpectrumWindow = fwFlatTop;
 			else
-				g_FFT_struct.nFFTWindow--;
-				
-			tbFFTWindow->SetText(g_szFFTWindow[g_FFT_struct.nFFTWindow - 1], TRUE);	
-	
+				--c_nSpectrumWindow;
+
+			player->SetFFTGraphParam(gpWindow, c_nSpectrumWindow);
+			tbFFTWindow->SetText(g_szFFTWindow[c_nSpectrumWindow - 1], TRUE);
 		}
 		break;
 
 		case TB_SPECTRUM_MODE:
 		case  BT_FFT_SPECTRUM_NEXT:
 		{
-			if(c_nSpectrumType == SPECTRUM_MODES_NUM - 1)
-				c_nSpectrumType = 0;
+			if(c_nSpectrumType == gtSpectrum)
+				c_nSpectrumType = gtLinesLeftOnTop;
 			else
-				c_nSpectrumType++;
-				
+				++c_nSpectrumType;
+
+			player->SetFFTGraphParam(gpGraphType, c_nSpectrumType);
 			tbSpectrumMode->SetText(g_szSpectrumModes[c_nSpectrumType], TRUE);
-			
-			g_clearFFTDisplay = 1;	
-
-			BOOL fShow = TRUE;
-			if(c_nSpectrumType == SPECTRUM_SPECTRAL_VIEW)
-				fShow = FALSE;
-
-			tbF1->Show(fShow);
-			tbF2->Show(fShow);
-			tbF3->Show(fShow);
-			tbF4->Show(fShow);
-			tbF5->Show(fShow);
-			tbF6->Show(fShow);
-			tbF7->Show(fShow);
-			tbF8->Show(fShow);
-
-
-
-
-
 		}
 		break;
 
 		case  BT_FFT_SPECTRUM_PREV:
 		{
-			if(c_nSpectrumType == 0)
-				c_nSpectrumType = SPECTRUM_MODES_NUM - 1;
+			if(c_nSpectrumType == gtLinesLeftOnTop)
+				c_nSpectrumType = gtSpectrum;
 			else
-				c_nSpectrumType--;
-				
-			tbSpectrumMode->SetText(g_szSpectrumModes[c_nSpectrumType], TRUE);	
+				--c_nSpectrumType;
 
-			g_clearFFTDisplay = 1;
-
-			BOOL fShow = TRUE;
-			if(c_nSpectrumType == SPECTRUM_SPECTRAL_VIEW)
-				fShow = FALSE;
-
-			tbF1->Show(fShow);
-			tbF2->Show(fShow);
-			tbF3->Show(fShow);
-			tbF4->Show(fShow);
-			tbF5->Show(fShow);
-			tbF6->Show(fShow);
-			tbF7->Show(fShow);
-			tbF8->Show(fShow);
-
+			player->SetFFTGraphParam(gpGraphType, c_nSpectrumType);
+			tbSpectrumMode->SetText(g_szSpectrumModes[c_nSpectrumType], TRUE);
 		}
 		break;
 
 		case TB_MODE:
 		case BT_MODENEXT:
 		{
-			MP3_STATUS status;
-			mp3->GetStatus(&status);
+			/*TStreamStatus status;
+			player->GetStatus(&status);
 			int mode = status.nSfxMode;
 			mode++;
 			if(mode > 9) mode = 0;
 			mp3->SetSfxParam(sfx,mode, (20 - sbDelay->GetPos()) * 50,(12 - sbInput->GetPos()) , (12 - sbEcho->GetPos()) , (12 - sbOutput->GetPos()) );	
 			tbMode->SetText(sModes[mode],1);
-
+			*/
 
 		}
 		break;
@@ -2697,14 +1730,14 @@ LRESULT MainForm::OnCommand(int wNotifyCode, int ControlID, HWND hWndControl)
 
 		case BT_MODEPREV:
 		{
-			MP3_STATUS status;
+		/*	MP3_STATUS status;
 			mp3->GetStatus(&status);
 			int mode = status.nSfxMode;
 			mode--;
 			if(mode < 0) mode = 9;
 			mp3->SetSfxParam(sfx, mode, (20 - sbDelay->GetPos()) ,(12 - sbInput->GetPos()) , (12 - sbEcho->GetPos()) , (12 - sbOutput->GetPos()) );	
 			tbMode->SetText(sModes[mode],1);
-
+			*/
 
 		}
 		break;
@@ -2712,7 +1745,7 @@ LRESULT MainForm::OnCommand(int wNotifyCode, int ControlID, HWND hWndControl)
 
 		case BT_ECHO:
 		{
-			if(sfx == 0)
+		/*	if(sfx == 0)
 				sfx = 1;
 			else
 				sfx = 0;
@@ -2723,7 +1756,7 @@ LRESULT MainForm::OnCommand(int wNotifyCode, int ControlID, HWND hWndControl)
 			int mode = status.nSfxMode;
 			mp3->SetSfxParam(sfx, mode, (20 - sbDelay->GetPos()) * 50,(12 - sbInput->GetPos()) , (12 - sbEcho->GetPos()) , (12 - sbOutput->GetPos()) );	
 			
-
+			*/
 		}
 		break;
 
@@ -2736,31 +1769,27 @@ LRESULT MainForm::OnCommand(int wNotifyCode, int ControlID, HWND hWndControl)
 				eq = 1;
 		
 			btEq->SetCheck(eq);
-			mp3->EnableEQ(eq,1);
+			player->EnableEqualizer(eq);
 		}
 		break;
 
 		case BT_RESETEQ:
 		{
-			for(int i = 0; i < 10; i++) {
-				eq_values[i] = 0;
-				
-			}
+			memset(eq_values, 0, 10 * sizeof(int));
 
-			mp3->SetEQParam(ExternalEQ, 0,eq_values, 10);
+			player->SetEqualizerParam(0,eq_values, 10);
 
-			sbEq1->SetPos(12,1);
-			sbEq2->SetPos(12,1);
-			sbEq3->SetPos(12,1);
-			sbEq4->SetPos(12,1);
-			sbEq5->SetPos(12,1);
-			sbEq6->SetPos(12,1);
-			sbEq7->SetPos(12,1);
-			sbEq8->SetPos(12,1);
-			sbEq9->SetPos(12,1);
-			sbEq10->SetPos(12,1);
-			sbPreAmp->SetPos(12,1);
-
+			sbEq1->SetPos(12000,1);
+			sbEq2->SetPos(12000,1);
+			sbEq3->SetPos(12000,1);
+			sbEq4->SetPos(12000,1);
+			sbEq5->SetPos(12000,1);
+			sbEq6->SetPos(12000,1);
+			sbEq7->SetPos(12000,1);
+			sbEq8->SetPos(12000,1);
+			sbEq9->SetPos(12000,1);
+			sbEq10->SetPos(12000,1);
+			sbPreAmp->SetPos(12000,1);
 		}
 		break;
 
@@ -2785,7 +1814,7 @@ LRESULT MainForm::OnCommand(int wNotifyCode, int ControlID, HWND hWndControl)
 
 		case M_EXTRACT:
 		{
-			mp3->Close();
+			player->Close();
 			char filename[MAX_PATH];
 			GetModuleFileName(NULL,filename,MAX_PATH);
 
@@ -2892,11 +1921,11 @@ LRESULT MainForm::OnCommand(int wNotifyCode, int ControlID, HWND hWndControl)
 		case MESSAGE_PLAY_EMBEDED:
 		{
 			if(reverse)
-				mp3->ReverseMode(0);
+				player->ReverseMode(0);
 
 			reverse = 0;
 
-			mp3->Close();
+			player->Close();
 			char filename[MAX_PATH];
 			GetModuleFileName(NULL,filename,MAX_PATH);
 
@@ -2939,13 +1968,13 @@ LRESULT MainForm::OnCommand(int wNotifyCode, int ControlID, HWND hWndControl)
 
 				if(dwSeek != 0) {
 
-					if(!mp3->OpenFile(filename,1000,dwSeek,lpLast)) {
-						MessageBox(mainForm->Handle,mp3->GetError(),"Error",MB_APPLMODAL|MB_ICONSTOP);
+					if(!player->OpenFile(filename,sfAutodetect)) {
+						MessageBox(mainForm->Handle,player->GetError(),"Error",MB_APPLMODAL|MB_ICONSTOP);
 						return 0;
 					}
        
 					Start(filename);
-					mp3->Play();
+					player->Play();
 				
 					
 				}
@@ -2965,19 +1994,19 @@ LRESULT MainForm::OnCommand(int wNotifyCode, int ControlID, HWND hWndControl)
 		case MESSAGE_PLAY_ARGUMENT:
 		{
 			if(reverse)
-				mp3->ReverseMode(0);
+				player->ReverseMode(0);
 
 			reverse = 0;
 
-			mp3->Close();
+			player->Close();
 			
-			if(!mp3->OpenFile(mp3filename,1000,0,0)) {
-						MessageBox(mainForm->Handle,mp3->GetError(),"Error",MB_APPLMODAL|MB_ICONSTOP);
+			if(!player->OpenFile(mp3filename,sfAutodetect)) {
+						MessageBox(mainForm->Handle,player->GetError(),"Error",MB_APPLMODAL|MB_ICONSTOP);
 				return 0;
 			}
        
 			Start(mp3filename);
-			mp3->Play();
+			player->Play();
 		
 
 		} 
@@ -3036,19 +2065,19 @@ LRESULT MainForm::OnCommand(int wNotifyCode, int ControlID, HWND hWndControl)
         {
 		
         	
-			MP3_STATUS status;
-			mp3->GetStatus(&status);
-			MP3_TIME time;
+			TStreamStatus status;
+			player->GetStatus(&status);
+			TStreamTime time;
 			time.sec = 5;
         	if(status.fPlay)
             {
-                    	mp3->Seek(TIME_FORMAT_SEC, &time, SONG_CURRENT_BACKWARD);
-						mp3->Play();
+                    	player->Seek(tfSecond, &time, smFromCurrentBackward);
+						player->Play();
 					
             }
             else
             {
-                    	mp3->Seek(TIME_FORMAT_SEC, &time, SONG_CURRENT_BACKWARD);
+                    	player->Seek(tfSecond, &time, smFromCurrentBackward);
             }
 
         }
@@ -3057,11 +2086,10 @@ LRESULT MainForm::OnCommand(int wNotifyCode, int ControlID, HWND hWndControl)
         case  BT_PLAY:
         {
 			if(reverse)
-				mp3->ReverseMode(0);
+				player->ReverseMode(0);
 
 			reverse = 0;
-			g_clearFFTDisplay = 1;
-			mp3->Play();
+			player->Play();
 		
 			Pause = FALSE;
         }
@@ -3070,23 +2098,23 @@ LRESULT MainForm::OnCommand(int wNotifyCode, int ControlID, HWND hWndControl)
 		case  BT_REVERSE:
         {
 			reverse = 1;
-			mp3->ReverseMode(1);
+			player->ReverseMode(1);
 
 
-			MP3_STATUS status;
-			mp3->GetStatus(&status);
-			if(status.fStop)
+			TStreamStatus status;
+			player->GetStatus(&status);
+			if(!status.fPlay)
 			{
-				MP3_TIME time;
-				mp3->GetPosition(&time);
+				TStreamTime time;
+				player->GetPosition(&time);
 				if(time.ms == 0)
 				{
 					time.ms = 0;
-					mp3->Seek(TIME_FORMAT_MS, &time, SONG_END);
+					player->Seek(tfMillisecond, &time, smFromEnd);
 				}
 
 					
-				mp3->Play();
+				player->Play();
 				Pause = FALSE;
 			}
         }
@@ -3096,12 +2124,12 @@ LRESULT MainForm::OnCommand(int wNotifyCode, int ControlID, HWND hWndControl)
         case  BT_PAUSE:
         {
             if(Pause) {
-            	mp3->Resume();
+            	player->Resume();
                 Pause = FALSE;
             }
             else {
                 Playing = FALSE;
-         		mp3->Pause();
+         		player->Pause();
                 Pause = TRUE;
             }
         }
@@ -3109,24 +2137,24 @@ LRESULT MainForm::OnCommand(int wNotifyCode, int ControlID, HWND hWndControl)
         case  BT_STOP:
         {
 
-            mp3->Stop();
+            player->Stop();
         }
         break;
         case  BT_NEXT:
         {
-            	MP3_STATUS status;
-			mp3->GetStatus(&status);
-			MP3_TIME time;
+            	TStreamStatus status;
+			player->GetStatus(&status);
+			TStreamTime time;
 			time.sec = 5;
         	if(status.fPlay)
             {
-                    	mp3->Seek(TIME_FORMAT_SEC, &time, SONG_CURRENT_FORWARD);
-						mp3->Play();
+                    	player->Seek(tfSecond, &time, smFromCurrentForward);
+						player->Play();
 					
             }
             else
             {
-                    	mp3->Seek(TIME_FORMAT_SEC, &time, SONG_CURRENT_FORWARD);
+                    	player->Seek(tfSecond, &time, smFromCurrentForward);
             }
          	
         }
@@ -3136,7 +2164,7 @@ LRESULT MainForm::OnCommand(int wNotifyCode, int ControlID, HWND hWndControl)
 			reverse = 0;
 			
         	WOpenDialog* opendlg = new WOpenDialog;
-            if(opendlg->Execute(Handle, "Mp3 File\0*.mp3\0Mp2 File\0*.mp2\0\0", 1, 0, "Open mp3 file",	NULL))
+            if(opendlg->Execute(Handle, "Music File\0*.mp3;*.mp2;*.mp1;*.ogg;*.flac;*.oga;*.ac3;*.;*.aac;*.wav\0All Files\0*.*\0\0", 1, 0, "Open music file",	NULL))
             {
                 strcpy(mp3filename,opendlg->GetFileName());
 				delete opendlg;
@@ -3323,7 +2351,7 @@ LRESULT MainForm::OnCommand(int wNotifyCode, int ControlID, HWND hWndControl)
             	sbLvolume->SetPos(m);
             	sbRvolume->SetPos(m);
             	int vol = 100 - m;
-                mp3->SetVolume(vol, vol);
+                player->SetPlayerVolume(vol, vol);
             }
 
 			btLock->SetCheck(bLockVolume);
@@ -3610,17 +2638,6 @@ LRESULT MainForm::OnContextMenu(int X, int Y, HWND Handle)
 
 BOOL Start(char* filename)
 {
-	g_clearFFTDisplay = 1;
-
-	FFT_STRUCT fft;
-	memset(&fft, 0, sizeof(FFT_STRUCT));
-	fft.nFFTPoints = FFT_SIZE;
-	fft.pnHarmonicFreq = mainForm->c_HarmonicFreq;
-
-	mp3->GetFFTValues(&fft);
-	prepare_fft_x(g_FFTDisplayMode, fft.nHarmonicNumber , fft.pnHarmonicFreq, VU_EQ_NUM, FFT_Left, FFT_Right);
-    	
-	
 	char listBoxEntry[MAX_PATH];
     char fileTitle[MAX_PATH];
 
@@ -3628,13 +2645,13 @@ BOOL Start(char* filename)
 
     sprintf(listBoxEntry, "%s",  fileTitle);
 
-	ID3_INFO id3;
-    if(mp3->LoadID3(ID3_VERSION2, &id3))
+	TID3Info id3;
+	if(player->LoadID3(id3Version2, &id3))
     {
 		sprintf(listBoxEntry, "%s - %s", id3.Artist, id3.Title);
 
     }
-	else if(mp3->LoadID3(ID3_VERSION1, &id3))
+	else if(player->LoadID3(id3Version1, &id3))
     {
         	sprintf(listBoxEntry, "%s - %s", id3.Artist, id3.Title);
 
@@ -3645,29 +2662,27 @@ BOOL Start(char* filename)
 
     tbSongName->SetText(listBoxEntry,1);
 
-	MP3_TIME length;
-	mp3->GetSongLength(&length);
+	TStreamInfo info;
+	player->GetStreamInfo(&info);
 
 
 
 
-    sbSeek->SetRange(length.sec);
+    sbSeek->SetRange(info.Length.sec);
 
  
 
     
     char text[100];
     
-    sprintf(text,"%02i:%02i:%02i", length.hms_hour, length.hms_minute , length.hms_second );
+    sprintf(text,"%02i:%02i:%02i", info.Length.hms.hour, info.Length.hms.minute , info.Length.hms.second );
     tbSongLength->SetText(text,1);
 
-	MP3_STREAM_INFO info;
-	mp3->GetMp3Info(&info);
 
-    sprintf(text, "%i", info.nSamplingRate);
+    sprintf(text, "%i", info.SamplingRate);
     tbSongSamplingRate->SetText(text,1);
 
-	char *channel_ver = "";
+/*	char *channel_ver = "";
 
 	switch(info.nChannelMode)
 	{
@@ -3690,10 +2705,10 @@ BOOL Start(char* filename)
 
 
 
-	tbSongStereoMode->SetText(channel_ver, 1);
+	tbSongStereoMode->SetText(channel_ver, 1);*/
 
 
-	if(info.fVBR)
+	if(info.VBR)
 		tbkbps->SetText("kbps VBR",1);
 	else
 		tbkbps->SetText("kbps CBR",1);
@@ -3715,20 +2730,20 @@ int MainForm::OnMessage(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam, DWORD
 			{
 				strcpy(mp3filename, filename);
 
-				mp3->Close();
-				if(!mp3->OpenFile(filename,1000,0,0))
+				player->Close();
+				if(!player->OpenFile(filename,sfAutodetect))
 				{
-					MessageBox(mainForm->Handle,mp3->GetError(),"Error",MB_APPLMODAL|MB_ICONSTOP);
+					MessageBox(mainForm->Handle,player->GetError(),"Error",MB_APPLMODAL|MB_ICONSTOP);
 					return 0;
 				}
 
 				if(reverse)
-					mp3->ReverseMode(0);
+					player->ReverseMode(0);
 
 					reverse = 0;
        
 				Start(mp3filename);
-				mp3->Play();
+				player->Play();
 			}
 		return 0;
 	}
@@ -3759,36 +2774,4 @@ typedef BOOL (WINAPI *SETLAYERED_FUNC)(HWND hwnd, COLORREF crKey, BYTE bAlpha, D
 	} else {
 		return FALSE;
 	}
-}
-
-
-
-
-
-void alpha_blend()
-{
-	int i;
-	int j;
-	for (j = 0; j < FFT_DISPLAY_HEIGHT; ++j)
-	{
-																
-		register BYTE *pbDestRGB = (BYTE*) ((DWORD*) g_pDestBits + ( j * FFT_DISPLAY_WIDTH));
-		register BYTE *pbSrcRGB = (BYTE*) ((DWORD*) g_pSrcBits + ( j * FFT_DISPLAY_WIDTH));
-
-		for (i = 0; i < FFT_DISPLAY_WIDTH; ++i)
-		{
-			// apply mask RGB
-			if (pbSrcRGB[0] != MASK_RED || pbSrcRGB[1] != MASK_GREEN || pbSrcRGB[2] != MASK_BLUE)
-			{	
-				pbDestRGB[0]=(pbDestRGB[0] * g_invalpha + pbSrcRGB[0] * g_alpha)>>8;
-				pbDestRGB[1]=(pbDestRGB[1] * g_invalpha + pbSrcRGB[1] * g_alpha)>>8;
-				pbDestRGB[2]=(pbDestRGB[2] * g_invalpha + pbSrcRGB[2] * g_alpha)>>8;
-			}
-										
-											
-			pbSrcRGB += 4;
-			pbDestRGB += 4;
-		}
-	}
-
 }

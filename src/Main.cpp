@@ -7,7 +7,7 @@
 
 #include <commctrl.h> // must link with  comctl32 library
 
-#include "..\libwmp3\src\libwmp3.h"
+#include "..\libzplay.h"
 
 #include "mainform.h"
 
@@ -23,8 +23,7 @@ extern BOOL Start();
 WApp *myApp;
 MainForm *mainForm;
 
-CWMp3* mp3;
-CWMp3* mp31;
+libZPlay::ZPlay* player;
 
 WMixer *mixer;
 
@@ -80,7 +79,7 @@ int WINAPI WinMain (HINSTANCE hThisInstance,HINSTANCE hPrevInstance,LPSTR lpszAr
 	
     InitCommonControls();
 
-	mp3 = CreateCWMp3();
+	player = libZPlay::CreateZPlay();
 
 	
 	myApp = new WApp(hThisInstance, lpszArgument, nFunsterStil);
@@ -111,7 +110,7 @@ int WINAPI WinMain (HINSTANCE hThisInstance,HINSTANCE hPrevInstance,LPSTR lpszAr
 
 		delete mixer;
 		delete mainForm;
-		mp3->Release();
+		player->Release();
 		delete myApp;
 
 
