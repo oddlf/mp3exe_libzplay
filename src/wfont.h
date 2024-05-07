@@ -4,7 +4,6 @@
 // Email: zcindori@inet.hr
 // Date: 06/06/2004
 
-
 #ifndef _WFONT_Z_
 #define _WFONT_Z_
 
@@ -14,28 +13,19 @@
 #define FS_UNDERLINE 0x4
 #define FS_STRIKEOUT 0x8
 
-
-class WFont {
+class WFont
+{
 public:
 	HFONT Handle;
-    TCHAR Name[LF_FACESIZE];
-   
+	TCHAR Name[LF_FACESIZE];
 
-    	
-        long lfHeight;
+	long lfHeight;
 
-    WFont();
-    WFont(int  nSize,DWORD fnStyle , LPCTSTR  lpszFace);
-    ~WFont();
+	WFont();
+	WFont(int nSize, DWORD fnStyle, LPCTSTR lpszFace);
+	~WFont();
 
-    void Select(int  nSize,DWORD fnStyle , LPCTSTR  lpszFace);
-
-
-
-
-
+	void Select(int nSize, DWORD fnStyle, LPCTSTR lpszFace);
 };
-
-
 
 #endif

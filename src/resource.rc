@@ -1,4 +1,4 @@
-#include "windows.h"
+#include "Windows.h"
 #include "resource.h"
 
 
@@ -50,8 +50,8 @@ BMP_BTMODENEXT          BITMAP  MOVEABLE PURE   "resource\\btmodenext.bmp"
 BMP_BTMODEPREV          BITMAP  MOVEABLE PURE   "resource\\btmodeprev.bmp"
 BMP_BTREVERSE           BITMAP  MOVEABLE PURE   "resource\\btplayrev.bmp"
 BMP_BTLINEAR            BITMAP  MOVEABLE PURE   "resource\\btlinear.bmp"
-BMP_FFTBG				BITMAP  MOVEABLE PURE   "resource\\fftbg.bmp"
-BMP_SPECTRUM			BITMAP  MOVEABLE PURE   "resource\\spectrum.bmp"
+BMP_FFTBG               BITMAP  MOVEABLE PURE   "resource\\fftbg.bmp"
+BMP_SPECTRUM            BITMAP  MOVEABLE PURE   "resource\\spectrum.bmp"
 
 /////////////////////////////////////////////////////////////////////////////
 //
@@ -62,7 +62,7 @@ MAIN_MENU MENU DISCARDABLE
 BEGIN
     POPUP "MainMenu"
     BEGIN
-    	MENUITEM "About",          				M_ABOUT
+        MENUITEM "About",                       M_ABOUT
         MENUITEM SEPARATOR
         MENUITEM "Play embedded file",          M_EMBEDDED
         MENUITEM SEPARATOR

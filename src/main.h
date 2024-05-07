@@ -1,6 +1,4 @@
 
-#include "wmixer.h"
+#include "WMixer.h"
 
-extern WMixer *mixer;
-
-
+extern WMixer* mixer;

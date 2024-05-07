@@ -9,25 +9,21 @@
 #ifndef _W_MEM_
 #define _W_MEM_
 
-class WMem {
+class WMem
+{
 public:
 	WMem();
-    ~WMem();
+	~WMem();
 
-    char* Buffer;
-    DWORD Size;
+	char* Buffer;
+	DWORD Size;
 
-    BOOL Allocate(DWORD  dwBytes);
-    void Free();
-    DWORD GetSize();
+	BOOL Allocate(DWORD dwBytes);
+	void Free();
+	DWORD GetSize();
 
 private:
 	HGLOBAL _hMem;
-
-
 };
 
-
 #endif
-
-

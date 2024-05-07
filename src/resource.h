@@ -15,7 +15,7 @@
 #define BMP_SBTHUMB 311
 #define BMP_SBVERT 312
 #define BMP_SBVTHUMB 313
-#define BMP_TBBG	314
+#define BMP_TBBG 314
 #define BMP_MAIN 315
 #define BMP_TITLEBAR 316
 #define BMP_FONT 317
@@ -35,37 +35,18 @@
 #define BMP_FFTBG 333
 #define BMP_SPECTRUM 334
 
-
 // popup
 
-#define	MAIN_MENU	1000
-#define	M_OPEN	1010
-#define	M_CONVERT	1011
-#define	M_EXTRACT	1012
-#define M_EMBEDDED	1014
-#define	M_ONTOP	1040
+#define MAIN_MENU 1000
+#define M_OPEN 1010
+#define M_CONVERT 1011
+#define M_EXTRACT 1012
+#define M_EMBEDDED 1014
+#define M_ONTOP 1040
 #define M_TIMEELAPSED 1080
-#define	M_MINTOTRAY	1050
-#define	M_TOOLTIPS	1060
-#define	M_SHORTCUTS	1070
-#define	M_ESCMIN	1090
-#define	M_EXIT	1180
-#define M_ABOUT	1081
-
-
-
-
-
-
-
-
-
-
-
-
- 
-
-
-
-
-
+#define M_MINTOTRAY 1050
+#define M_TOOLTIPS 1060
+#define M_SHORTCUTS 1070
+#define M_ESCMIN 1090
+#define M_EXIT 1180
+#define M_ABOUT 1081

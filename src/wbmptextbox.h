@@ -4,34 +4,31 @@
 // Email: zcindori@inet.hr
 // Date: 06/06/2004
 
-
 #ifndef _WBMPTEXTBOX_Z_
 #define _WBMPTEXTBOX_Z_
 
-#include "wcontrol.h"
-#include "wbmpfont.h"
+#include "WControl.h"
+#include "WBmpFont.h"
 
-
-
-class WBmpTextBox : public WControl {
+class WBmpTextBox : public WControl
+{
 public:
 	WBmpTextBox();
 	~WBmpTextBox();
 	int Create(char* text,
-				int nX,
-				int nY,
-				int nWidth,
-				int nHeight,
-				HWND hWndParent,
-				UINT hMenu,
-				HINSTANCE hInstance,
-                HBITMAP hBgBitmap,
-				WBmpFont* font);
+		int nX,
+		int nY,
+		int nWidth,
+		int nHeight,
+		HWND hWndParent,
+		UINT hMenu,
+		HINSTANCE hInstance,
+		HBITMAP hBgBitmap,
+		WBmpFont* font);
 
 	int SetText(char* text, BOOL fRedraw);
 	int SetScrollTextDelimiter(char* delimiter);
-	void EnableScroll(BOOL Enable,DWORD dwTimeout);
-
+	void EnableScroll(BOOL Enable, DWORD dwTimeout);
 
 private:
 	WBmpFont* _font;
@@ -44,23 +41,10 @@ private:
 	char* _scroll_text_delimiter;
 	char* _scroll_text;
 
-
-	static LRESULT CALLBACK _WindowSubclassProc(HWND hwnd,UINT uMsg,WPARAM wParam,LPARAM lParam);
-    static void Draw(WBmpTextBox *control, HDC hdc);
-	
-
-
+	static LRESULT CALLBACK _WindowSubclassProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam);
+	static void Draw(WBmpTextBox* control, HDC hdc);
 
 protected:
-
-
-
-
-
-
-
-
 };
-
 
 #endif

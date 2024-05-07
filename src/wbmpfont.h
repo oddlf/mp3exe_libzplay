@@ -7,19 +7,15 @@
 #ifndef _WBMPFONT_
 #define _WBMPFONT_
 
-
-
-
-
-
-class WBmpFont {
+class WBmpFont
+{
 public:
 	WBmpFont();
 	~WBmpFont();
 	int Open(HBITMAP hbFont, char* lpCharMap, int dwFontHeight);
 	int SetText(char* lpText);
 	int Draw(HDC hdc, RECT* rcDest,
-    		BOOL fStretch, BOOL fTransparent, COLORREF crTransparent);
+		BOOL fStretch, BOOL fTransparent, COLORREF crTransparent);
 
 private:
 	HBITMAP _hbFont;
@@ -29,11 +25,8 @@ private:
 	int _dwTextLen;
 	int _dwCharMapLen;
 
-	static int _Draw(WBmpFont* font,HDC hdc, RECT* rcDest,
-    		BOOL fStretch, BOOL fTransparent, COLORREF crTransparent);
-
+	static int _Draw(WBmpFont* font, HDC hdc, RECT* rcDest,
+		BOOL fStretch, BOOL fTransparent, COLORREF crTransparent);
 };
-
-
 
 #endif

@@ -1,125 +1,96 @@
 #define STRICT
-#include <windows.h>
-#pragma hdrstop
+#include <Windows.h>
+#include <CommCtrl.h> // must link with  comctl32 library
 
+#include <libzplay/libzplay.h>
 
+#include "MainForm.h"
 
-
-#include <commctrl.h> // must link with  comctl32 library
-
-#include "..\libzplay.h"
-
-#include "mainform.h"
-
-#include "main.h"
+#include "Main.h"
 #include "resource.h"
-#include "wfile.h"
-
-
+#include "WBmpTextBox.h"
 
 extern BOOL Start();
 
-
-WApp *myApp;
-MainForm *mainForm;
+WApp* myApp;
+MainForm* mainForm;
 
 libZPlay::ZPlay* player;
 
-WMixer *mixer;
+WMixer* mixer;
 
 BOOL bAutostart = FALSE;
 
 extern char mp3filename[MAX_PATH];
 
-
 /*  Declare Windows procedure  */
-LRESULT CALLBACK WindowProcedure (HWND, UINT, WPARAM, LPARAM);
-
+LRESULT CALLBACK WindowProcedure(HWND, UINT, WPARAM, LPARAM);
 
 /*  Make the class name into a global variable  */
 char szClassName[] = "ZC_Mp3ExePlayer";
 
-
-int WINAPI WinMain (HINSTANCE hThisInstance,HINSTANCE hPrevInstance,LPSTR lpszArgument, int nFunsterStil)
+int WINAPI WinMain(HINSTANCE hThisInstance, HINSTANCE hPrevInstance, LPSTR lpszArgument, int nFunsterStil)
 {
 
-
-	if(lpszArgument && *lpszArgument)
+	if (lpszArgument && *lpszArgument)
 	{
 
-	
-		if(lpszArgument[0] == '\"')
-			lpszArgument++;	
+		if (lpszArgument[0] == '\"')
+			lpszArgument++;
 
-		unsigned int size = strlen(lpszArgument);
-		if(size)
+		size_t size = strlen(lpszArgument);
+		if (size)
 		{
-			if(lpszArgument[size - 1] == '\"')
-				lpszArgument[size - 1] = 0;	
+			if (lpszArgument[size - 1] == '\"')
+				lpszArgument[size - 1] = 0;
 		}
-		
-		strcpy(mp3filename, lpszArgument);
-		
+
+		strcpy_s(mp3filename, lpszArgument);
 
 		HWND hwnd;
 		hwnd = FindWindow("ZC_Mp3ExePlayer", NULL);
-		if ( hwnd )
-		{ 
+		if (hwnd)
+		{
 			COPYDATASTRUCT data;
-			data.cbData = strlen(mp3filename) + 1;
+			data.cbData = (DWORD)strlen(mp3filename) + 1;
 			data.lpData = mp3filename;
-    	   	SendMessage(hwnd, WM_COPYDATA, 0, (LPARAM)  &data);
+			SendMessage(hwnd, WM_COPYDATA, 0, (LPARAM)&data);
 			// terminate this instance of application
-    		return 0;
+			return 0;
 		}
-
-	
 	}
 
-	
-    InitCommonControls();
+	InitCommonControls();
 
 	player = libZPlay::CreateZPlay();
 
-	
 	myApp = new WApp(hThisInstance, lpszArgument, nFunsterStil);
-   	mainForm = new MainForm;
+	mainForm = new MainForm;
 	mixer = new WMixer;
 
-
-
-	mainForm->Create(szClassName,LoadIcon (hThisInstance, MAKEINTRESOURCE(LARGE_ICON)),
-						LoadIcon (hThisInstance, MAKEINTRESOURCE(SMALL_ICON)),
-						LoadCursor (NULL, IDC_ARROW),(HBRUSH) COLOR_BACKGROUND,NULL,
-						0,"Mp3-Exe Player",WS_POPUP|WS_SYSMENU,CW_USEDEFAULT,CW_USEDEFAULT, 275,388,
-                    		NULL);
+	mainForm->Create(szClassName, LoadIcon(hThisInstance, MAKEINTRESOURCE(LARGE_ICON)),
+		LoadIcon(hThisInstance, MAKEINTRESOURCE(SMALL_ICON)),
+		LoadCursor(NULL, IDC_ARROW), (HBRUSH)COLOR_BACKGROUND, NULL,
+		0, "Mp3-Exe Player", WS_POPUP | WS_SYSMENU, CW_USEDEFAULT, CW_USEDEFAULT, 275, 388,
+		NULL);
 
 	mainForm->Show(TRUE);
 
-	if(lpszArgument && *lpszArgument)
+	if (lpszArgument && *lpszArgument)
 	{
-		SendMessage(mainForm->Handle, WM_COMMAND, MAKEWPARAM(MESSAGE_PLAY_ARGUMENT,0 ), 0);
+		SendMessage(mainForm->Handle, WM_COMMAND, MAKEWPARAM(MESSAGE_PLAY_ARGUMENT, 0), 0);
 	}
 	else
 	{
-		SendMessage(mainForm->Handle, WM_COMMAND, MAKEWPARAM(MESSAGE_PLAY_EMBEDED,0 ), 0);
+		SendMessage(mainForm->Handle, WM_COMMAND, MAKEWPARAM(MESSAGE_PLAY_EMBEDED, 0), 0);
 	}
 
-		myApp->Run();
+	myApp->Run();
 
+	delete mixer;
+	delete mainForm;
+	player->Release();
+	delete myApp;
 
-		delete mixer;
-		delete mainForm;
-		player->Release();
-		delete myApp;
-
-
- 
-    return 0;
-
-
-
+	return 0;
 }
-
-
-
