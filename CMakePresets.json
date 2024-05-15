@@ -130,14 +130,29 @@
       "displayName": "x64 Debug"
     },
     {
+      "name": "windows-x64-mingw-debug",
+      "configurePreset": "windows-x64-mingw-debug",
+      "displayName": "x64 Debug (MinGW)"
+    },
+    {
       "name": "windows-x64-release",
       "configurePreset": "windows-x64-release",
       "displayName": "x64 Release"
     },
     {
+      "name": "windows-x64-mingw-release",
+      "configurePreset": "windows-x64-mingw-release",
+      "displayName": "x64 Release (MinGW)"
+    },
+    {
       "name": "windows-x64-release-static",
       "configurePreset": "windows-x64-release-static",
       "displayName": "x64 Release Static"
+    },
+    {
+      "name": "windows-x64-mingw-release-static",
+      "configurePreset": "windows-x64-mingw-release-static",
+      "displayName": "x64 Release Static (MinGW)"
     },
     {
       "name": "windows-x86-debug",
